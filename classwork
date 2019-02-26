@@ -1,20 +1,68 @@
 #Exercise 1 - Mailing Address
-print("St.Robert Catholic High School\n8101 Leslie St.\nThornhill, ON\nL3T 7P4\n905-889-4982")
-
-name, address, city, province, postal_code, telephone = "St.Robert Catholic High School", "8101 Leslie St.", "Thornhill", "ON", "L3T 7P4", "905-889-4982" 
+name = "St.Robert Catholic High School"
+address = "8101 Leslie St."
+city = "Thornhill"
+province = "ON"
+postal_code = "L3T 7P4"
+telephone = "905-889-4982"
 print(f"{name}\n{address}\n{city}, {province}\n{postal_code}\n{telephone}")
 
 #Exercise 2 - Hello
+num = 0
 name = input("What's your name\n")
-mood = input(f"Hello, {name}. How are you today?\n")
-if mood == "good":
-  print("Nice.\n")
-elif mood == "bad":
-  print("Suicide is never the answer.")
-else:
-  print("ye, whatever.\n")
+print(f"Hello, {name}.")
   
 #Exercise 3 - Area of a room
+while True:
+    try:
+        w = float(input("Please enter the width of the room in metre: "))
+    except ValueError:
+        print("-----Please enter number-----")
+    else:
+        while True:
+            try:
+                l = float(input("Please enter the length of the room in metre: "))
+            except ValueError:
+                print("-----Please enter number-----")
+            else:
+                print(f"The area of the room is {w*l} square metres")
+                break
+        break
 
+#Exercise 4 - Area of a field
+while True:
+    try:
+        w = float(input("Please enter the width of the field in inch: "))
+    except ValueError:
+        print("-----Please enter number-----")
+    else:
+        while True:
+            try:
+                l = float(input("Please enter the length of the field in inch: "))
+            except ValueError:
+                print("-----Please enter number-----")
+            else:
+                print(f"The area of the field is {w*l/43560} acres")
+                break
+        break
+
+#Exercise 5 - BottleDeposits
+while True:
+    try:
+        w = float(input("Please enter the width of the field in inch: "))
+    except ValueError:
+        print("-----Please enter number-----")
+    else:
+        while True:
+            try:
+                l = float(input("Please enter the length of the field in inch: "))
+            except ValueError:
+                print("-----Please enter number-----")
+            else:
+                print(f"The area of the field is {w*l/43560} acres")
+                break
+        break
+        
+#Exercise 34 - 
 
 
