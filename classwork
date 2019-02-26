@@ -63,6 +63,35 @@ while True:
                 break
         break
         
-#Exercise 34 - 
+#Exercise 34 - Even or Odd
+num = int(input("Please enter an integer number\n"))
+if num%2 == 0:
+    print(f"{num} is an even number.")
+else:
+    print(f"{num} is an odd number.")
+    
+#Exercise 35 - Dog Years
+yr_hum = int(input("Please enter the number of human year\n"))
+if yr_hum <= 2:
+    yr_dog = yr_hum*10.5
+else:
+    yr_dog = 4*(yr_hum-2) + 21
+print(f"{yr_hum} human years is equal to {yr_dog} dog years")
 
+#Exercise 36 - Vowel or Consonant
+letter = input("Please enter a single letter\n")
+if letter in "aeiou":
+    print(f"{letter} is a vowel.")
+elif letter == "y":
+    print("y is a vowel sometimes and a consonant sometimes.")
+else:
+    print(f"{letter} is a consonant.")
+
+#Exercise 37 - Name That Shapes
+sides = int(input("Please enter the number of sides of the polygon\n"))
+shape = ("N/A", "N/A", "N/A", "triangle", "quadrilateral", "pentagon", "hexagon", "heptagon", "Octagon", "Nonagon", "Decagon")
+if  sides <= 10:
+    print(f"Polygon with {sides} sides is {shape[sides]}.")
+else:
+    print(f"Error, this program is too stupid to handle shape with {sides} sides.")
 
