@@ -1,0 +1,7 @@
+name = "St.Robert Catholic High School"
+address = "8101 Leslie St."
+city = "Thornhill"
+province = "ON"
+postal_code = "L3T 7P4"
+telephone = "905-889-4982"
+print(f"{name}\n{address}\n{city}, {province}\n{postal_code}\n{telephone}")
