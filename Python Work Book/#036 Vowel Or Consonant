@@ -1,0 +1,7 @@
+letter = input("Please enter a single letter\n")
+if letter in "aeiou":
+    print(f"{letter} is a vowel.")
+elif letter == "y":
+    print("y is a vowel sometimes and a consonant sometimes.")
+else:
+    print(f"{letter} is a consonant.")
