@@ -1,0 +1,6 @@
+sides = int(input("Please enter the number of sides of the polygon\n"))
+shape = ("N/A", "N/A", "N/A", "triangle", "quadrilateral", "pentagon", "hexagon", "heptagon", "octagon", "nonagon", "decagon")
+if  sides <= 10:
+    print(f"Polygon with {sides} sides is {shape[sides]}.")
+else:
+    print(f"Error, this program is too stupid to handle shape with {sides} sides.")
