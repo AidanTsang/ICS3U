@@ -1,0 +1,15 @@
+while True:
+    try:
+        w = float(input("Please enter the width of the field in inch: "))
+    except ValueError:
+        print("-----Please enter number-----")
+    else:
+        while True:
+            try:
+                l = float(input("Please enter the length of the field in inch: "))
+            except ValueError:
+                print("-----Please enter number-----")
+            else:
+                print(f"The area of the field is {w*l/43560} acres")
+                break
+        break
