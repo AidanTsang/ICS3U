@@ -1,0 +1,15 @@
+while True:
+    try:
+        w = float(input("Please enter the width of the room in metre: "))
+    except ValueError:
+        print("-----Please enter number-----")
+    else:
+        while True:
+            try:
+                l = float(input("Please enter the length of the room in metre: "))
+            except ValueError:
+                print("-----Please enter number-----")
+            else:
+                print(f"The area of the room is {w*l} square metres")
+                break
+        break
