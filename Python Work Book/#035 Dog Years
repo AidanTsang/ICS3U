@@ -1,0 +1,6 @@
+yr_hum = int(input("Please enter the number of human year\n"))
+if yr_hum <= 2:
+    yr_dog = yr_hum*10.5
+else:
+    yr_dog = 4*(yr_hum-2) + 21
+print(f"{yr_hum} human years is equal to {yr_dog} dog years")
