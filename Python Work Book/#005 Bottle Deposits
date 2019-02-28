@@ -1,0 +1,15 @@
+while True:
+    try:
+        containerS = float(input("Please enter the number of the containers smaller than 1 litre: "))
+    except ValueError:
+        print("-----Please enter number-----")
+    else:
+        while True:
+            try:
+                containerL = float(input("Please enter the number of containers larger than  1 litre: "))
+            except ValueError:
+                print("-----Please enter number-----")
+            else:
+                print("The deposit of all the containers is $%.2f" %(containerS*0.10+containerL*0.25))
+                break
+        break
