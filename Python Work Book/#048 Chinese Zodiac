@@ -1,0 +1,4 @@
+animals = ("Monkey", "Rooster", "Dog", "Pig", "Rat", "Ox", "Tiger", "Hare", "Dragon", "Snake", "Horse", "Sheep" )
+yr = int(input("Please enter the year\n"))
+zodiac = yr % 12
+print(f"{yr} is the Year of {animals[zodiac]}")
