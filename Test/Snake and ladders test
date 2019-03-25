@@ -1,59 +1,64 @@
 import random
+
 game_over = True
 
-def init():
-  global player_num, player_loc, ladders, snakes, game_over
-  player_num = int(input("Please enter the number of player: "))
-  player_loc = [0 for i in range(player_num)]
-  ladders = {1:38, 4:14, 9:31, 21:42, 28:84, 36:44, 51:67, 71:91, 80:100}
-  snakes = {16:6, 47:26, 49:11, 56:53, 64:60, 87:24, 93:73, 95:75, 98:78}
-  game_over = False
+def start_game():
+    print("Press enter to start game")
+    if input()=="":
+        return True
 
-def game(i):
-  roll = random.randrange(1, 7)
-  print(f"Your roll is {roll}")
-  if end(i, roll):
-    player_loc[i] += roll
-    check(i)
-  if roll == 6:
-    game(i)
-    
+def init():
+    global player_num, player_loc, ladders, snakes, game_over
+    player_num = int(input("Please enter the number of player: "))
+    player_loc = [0 for i in range(player_num)]
+    ladders = {1: 38, 4: 14, 9: 31, 21: 42, 28: 84, 36: 44, 51: 67, 71: 91, 80: 100}
+    snakes = {16: 6, 47: 26, 49: 11, 56: 53, 64: 60, 87: 24, 93: 73, 95: 75, 98: 78}
+    game_over = False
+    print("Press enter to roll dice")
+
+def move(i):
+    roll = random.randrange(1, 7)
+    print(f"Your roll is {roll}")
+    if end(i, roll):
+        player_loc[i] += roll
+        check(i)
+    if roll == 6 and player_loc[i] != 100:
+        move(i)
+
 
 def check(i):
-  if player_loc[i] in ladders:
-    player_loc[i] = ladders[player_loc[i]]
-    print(f"You are on a ladder, moved to {player_loc[i]}")
-  elif player_loc[i] in snakes:
-    player_loc[i] = snakes[player_loc[i]]
-    print(f"You are on a snake, moved to {player_loc[i]}")
+    if player_loc[i] in ladders:
+        player_loc[i] = ladders[player_loc[i]]
+        print(f"You are on a ladder, moved to {player_loc[i]}")
+    elif player_loc[i] in snakes:
+        player_loc[i] = snakes[player_loc[i]]
+        print(f"You are on a snake, moved to {player_loc[i]}")
+
 
 def end(i, roll):
-  if player_loc[i] + roll <= 100:
-    return True
-  elif player_loc[i] + roll > 100:
-    print("You cannot move due to not able to go over 100")
-    return False
-
-def main():
-  global game_over
-  for i in range(player_num):
-    if input() == "":
-      game(i)
-    print(f"Player {i+1} is currently at {player_loc[i]}")
-    if player_loc[i] == 100:
-      game_over = True
-      print(f"Player {i+1} win")
-    
-
-def play():
-  global game_over
-  print("\nPress enter to play :D")
-  if input == "":
-    init()
+    if player_loc[i] + roll <= 100:
+        return True
+    elif player_loc[i] + roll > 100:
+        print("You cannot move due to not able to go over 100")
+        return False
 
 
-while not game_over:
-  main()
-while game_over:
-  play()
-  
+def game():
+    global game_over
+    for i in range(player_num):
+        if input()=="":
+            move(i)
+        print(f"Player {i + 1} is currently at {player_loc[i]}")
+        if player_loc[i] == 100:
+            game_over = True
+            print(f"Player {i + 1} win")
+            break
+
+while True:
+    if start_game():
+        init()
+        while not game_over:
+            game()
+
+
+
