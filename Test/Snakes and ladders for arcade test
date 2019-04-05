@@ -1,0 +1,181 @@
+import arcade, random
+
+WIDTH = 640
+HEIGHT = 480
+game_over = True
+ladders = {1: 38, 4: 14, 9: 31, 21: 42, 28: 84, 36: 44, 51: 67, 71: 91, 80: 100}
+snakes = {16: 6, 47: 26, 49: 11, 56: 53, 64: 60, 87: 24, 93: 73, 95: 75, 98: 78}
+start_game = False
+player_num = 0
+turn = 0
+roll = 0
+on_ladder = False
+on_snake = False
+six = 0
+
+def init():
+    global player_num, player_loc, game_over, roll_dice, turn, roll, six
+    player_num = int(input("Please enter the number of player: "))
+    player_loc = [0 for i in range(player_num)]
+    game_over = False
+    roll_dice = False
+    turn, roll, six = 0, 0, 0
+    print("Press enter to roll dice")
+
+def move(turn):
+    global roll, six
+    roll = random.randrange(1, 7)
+    print(f"Your roll is {roll}")
+    if end(turn, roll):
+        player_loc[turn] += roll
+    else:
+        player_loc[turn] = 100 - (player_loc[turn]+roll-100)
+    check(turn)
+    if roll == 6 and player_loc[turn] != 100:
+        move(turn)
+        six += 1
+
+def check(turn):
+    global on_ladder, on_snake
+    on_ladder, on_snake = False, False
+    if player_loc[turn] in ladders:
+        player_loc[turn] = ladders[player_loc[turn]]
+        print(f"You are on a ladder, moved to {player_loc[turn]}")
+        on_ladder = True
+    elif player_loc[turn] in snakes:
+        player_loc[turn] = snakes[player_loc[turn]]
+        print(f"You are on a snake, moved to {player_loc[turn]}")
+        on_snake = True
+
+def end(turn, roll):
+    if player_loc[turn] + roll <= 100:
+        return True
+    elif player_loc[turn] + roll > 100:
+        print("You are moved backward due to not able to go over 100")
+        return False
+
+
+def game():
+    global game_over, roll_dice, moved, six
+    moved = False
+    if roll_dice:
+        six = 0
+        move(turn)
+        moved = True
+        print(f"Player {turn + 1} is currently at {player_loc[turn]}\n")
+        roll_dice = False
+    if player_loc[turn] == 100:
+        game_over = True
+        print(f"Game ended. Player {turn + 1} win")
+    next_player()
+
+def next_player():
+    global turn, on_snake, on_ladder
+    if turn < player_num-1 and moved:
+        turn += 1
+    elif turn == player_num-1 and moved:
+        turn = 0
+
+
+def draw_board():
+    for i in range(10):
+        for j in range(10):
+            arcade.draw_xywh_rectangle_outline(i*40+20, j*40+20, 40, 40, arcade.color.BLACK)
+            if i % 2 == 0:
+                x = (j+1)*40-10
+            else:
+                x = (10-j)*40-10
+            arcade.draw_text(f"{str(i*10+j+1)}", x, (i+1)*40-10, arcade.color.BLACK)
+
+def draw_ladder(i):
+    if ((i-1)//10)%2 == 0:
+        x_loc1 = 40*((i-1)%10+1)
+    else:
+        x_loc1 = 40*(10-(i-1)%10)
+    if ((ladders[i]-1)//10)%2 == 0:
+        x_loc2 = 40*((ladders[i]-1)%10+1)
+    else:
+        x_loc2 = 40*(10-(ladders[i]-1)%10)
+    arcade.draw_line(x_loc1, ((i-1)//10+1)*40, x_loc2, ((ladders[i]-1)//10+1)*40, arcade.color.BROWN, 5)
+
+def draw_snake(i):
+    if ((i-1)//10)%2 == 0:
+        x_loc1 = 40*((i-1)%10+1)
+    else:
+        x_loc1 = 40*(10-(i-1)%10)
+    if ((snakes[i]-1)//10)%2 == 0:
+        x_loc2 = 40*((snakes[i]-1)%10+1)
+    else:
+        x_loc2 = 40*(10-(snakes[i]-1)%10)
+    arcade.draw_line(x_loc1, ((i-1)//10+1)*40, x_loc2, ((snakes[i]-1)//10+1)*40, arcade.color.GREEN, 5)
+
+def draw_player(i):
+    if ((player_loc[i]-1)//10)%2 == 0:
+        x_loc1 = 40*((player_loc[i]-1)%10+1)
+    else:
+        x_loc1 = 40*(10-(player_loc[i]-1)%10)
+    arcade.draw_circle_filled(x_loc1, ((player_loc[i]-1)//10+1)*40, 10, arcade.color.YELLOW)
+    arcade.draw_text(f"{i+1}", x_loc1-5, ((player_loc[i]-1)//10+1)*40-5, arcade.color.RED)
+
+def draw_scoreboard():
+    global on_ladder, on_snake
+    arcade.draw_text(f"Current turn: \nPlayer {turn+1}", 430, 400, arcade.color.BLACK)
+    for i in range(player_num):
+        arcade.draw_text(f"Player {i + 1}: {player_loc[i]}", 430, 350 - (20 * i), arcade.color.RED)
+    arcade.draw_text("Dice roll: ", 430, 100, arcade.color.BLUE)
+    arcade.draw_text(f"{roll}", 430, 35, arcade.color.BLUE, 50)
+    for i in range(six):
+        arcade.draw_text("6", 485+(20*i), 35, arcade.color.BLUE, 20)
+    if on_ladder:
+        arcade.draw_text("ladder", 430, 20, arcade.color.BROWN, 12)
+    elif on_snake:
+        arcade.draw_text("snake", 480, 20, arcade.color.GREEN, 12)
+
+def update(delta_time):
+    if start_game and game_over:
+        init()
+    elif start_game and not game_over:
+        game()
+
+def on_draw():
+    global start_game
+    arcade.start_render()
+    draw_board()
+    for i in snakes:
+        draw_snake(i)
+    for i in ladders:
+        draw_ladder(i)
+    for i in range(player_num):
+        draw_player(i)
+    draw_scoreboard()
+
+def on_key_press(key, modifieamers):
+    global start_game, roll_dice
+    if key == arcade.key.SPACE:
+        start_game = True
+    elif key == arcade.key.ENTER:
+        roll_dice = True
+
+def on_key_release(key, modifiers):
+    pass
+
+
+def on_mouse_press(x, y, button, modifiers):
+    pass
+
+
+def setup():
+    arcade.open_window(WIDTH, HEIGHT, "My Arcade Game")
+    arcade.set_background_color(arcade.color.WHITE)
+    arcade.schedule(update, 1/60)
+    # Override arcade window methods
+    window = arcade.get_window()
+    window.on_draw = on_draw
+    window.on_key_press = on_key_press
+    window.on_key_release = on_key_release
+    arcade.run()
+
+
+
+if __name__ == '__main__':
+    setup()
