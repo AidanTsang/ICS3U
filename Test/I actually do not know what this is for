@@ -1,7 +1,8 @@
 import random
 
 class Player():
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.cash = 1500
         self.loc = 0
         self.in_jail = False
@@ -14,22 +15,24 @@ class Player():
             if self.in_jail and not self.exit_jail():
                 self.jail_turn -= 1
             else:
-                self.loc += self.roll_1 + self.roll_2
-            print(board[self.loc], type(board[self.loc]), Property, isinstance(board[self.loc], Property))
+                self.loc += 1
+            self.pass_go()
+            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {self.owned}")
             self.check_board()
-            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}")
-            self.property()
             if self.roll_1 == self.roll_2:
                 self.move()
 
-    def check_board(self):
-        if self.loc > 39:
-            self.loc -= 39
+    def pass_go(self):
+        if self.loc > 3:
+            print("Gained $200 from passing go.")
+            self.loc -= 3
             self.cash += 200
+
+    def check_board(self):
         if isinstance(board[self.loc], Property):
             self.property()
         elif board[self.loc] == 1:
-            print("You are in jail")
+            print("You are in jail.")
             self.loc = 10
             self.in_jail = True
             self.jail_turn = 2
@@ -37,6 +40,7 @@ class Player():
     def exit_jail(self):
         if self.in_jail:
             if self.roll_1 == self.roll_2:
+                print("You exited jail with a double.")
                 self.in_jail = False
                 return True
             elif self.jail_turn == 0:
@@ -46,20 +50,23 @@ class Player():
                 return True
             elif input("Enter 'Y' to pay $50 to exit jail.") == "Y":
                 self.cash -= 50
-                print("You paid $50 to exit jail")
+                print("You paid $50 to exit jail.")
                 self.in_jail = False
                 return True
             else:
                 return False
 
     def property(self):
-        print(board[self.loc])
-        if board[self.loc] not in self.owned:
-
-
+        if board[self.loc] not in self.owned and not board[self.loc].bought:
+            board[self.loc].buy(self)
+        elif board[self.loc] not in self.owned and board[self.loc].bought:
+            board[self.loc].payment(self)
+        elif board[self.loc] in self.owned:
+            print("You landed on your own property.")
 
 class Property():
-    def __init__(self, cost, location, rent):
+    def __init__(self, name, cost, location, rent):
+        self.name = name
         self.cost = cost
         self.loc = location
         self.rent = rent
@@ -68,17 +75,18 @@ class Property():
 
     def buy(self, player):
         if self.bought == False:
-            print("Enter 'B' to buy this property")
+            print("You landed on an unbought property. \nEnter 'B' to buy this property.")
             if input() == "B":
                 self.bought = True
                 self.owner = player
                 player.cash -= self.cost
                 player.owned.append(self)
+                print(f"You bought {self.name} for ${self.cost}, ${player.cash} left.")
 
     def payment(self, player):
-        print(f"You paid ${self.rent} for rent.")
         player.cash -= self.rent
         self.owner.cash += self.rent
+        print(f"You paid Player{self.owner.name} ${self.rent} for the rent of {self.name}, ${player.cash} left.")
 
 board = [0 for i in range(40)]
 board[30] = 1
@@ -86,12 +94,14 @@ board[30] = 1
 player_num = int(input("Enter Player number: "))
 players = []
 for i in range(player_num):
-    players.append(Player())
+    players.append(Player(i+1))
 
-property_list = [Property(60, 1, 2), Property(60, 3, 4)]
+property_list = [Property("a", 60, 1, 2), Property("b", 60, 3, 4)]
 for i in property_list:
     board[i.loc] = i
 
+
 while True:
     for i in range(player_num):
+        print(f"\nPlayer{i+1}'s turn.", end= "")
         players[i].move()
