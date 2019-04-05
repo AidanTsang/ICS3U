@@ -1,0 +1,97 @@
+import random
+
+class Player():
+    def __init__(self):
+        self.cash = 1500
+        self.loc = 0
+        self.in_jail = False
+        self.owned = []
+
+    def move(self):
+        if input() == "":
+            self.roll_1 = random.randrange(1, 7)
+            self.roll_2 = random.randrange(1, 7)
+            if self.in_jail and not self.exit_jail():
+                self.jail_turn -= 1
+            else:
+                self.loc += self.roll_1 + self.roll_2
+            print(board[self.loc], type(board[self.loc]), Property, isinstance(board[self.loc], Property))
+            self.check_board()
+            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}")
+            self.property()
+            if self.roll_1 == self.roll_2:
+                self.move()
+
+    def check_board(self):
+        if self.loc > 39:
+            self.loc -= 39
+            self.cash += 200
+        if isinstance(board[self.loc], Property):
+            self.property()
+        elif board[self.loc] == 1:
+            print("You are in jail")
+            self.loc = 10
+            self.in_jail = True
+            self.jail_turn = 2
+
+    def exit_jail(self):
+        if self.in_jail:
+            if self.roll_1 == self.roll_2:
+                self.in_jail = False
+                return True
+            elif self.jail_turn == 0:
+                print("You are forced to paid $50 to exit.")
+                self.cash -= 50
+                self.in_jail = False
+                return True
+            elif input("Enter 'Y' to pay $50 to exit jail.") == "Y":
+                self.cash -= 50
+                print("You paid $50 to exit jail")
+                self.in_jail = False
+                return True
+            else:
+                return False
+
+    def property(self):
+        print(board[self.loc])
+        if board[self.loc] not in self.owned:
+
+
+
+class Property():
+    def __init__(self, cost, location, rent):
+        self.cost = cost
+        self.loc = location
+        self.rent = rent
+        self.building = 0
+        self.bought = False
+
+    def buy(self, player):
+        if self.bought == False:
+            print("Enter 'B' to buy this property")
+            if input() == "B":
+                self.bought = True
+                self.owner = player
+                player.cash -= self.cost
+                player.owned.append(self)
+
+    def payment(self, player):
+        print(f"You paid ${self.rent} for rent.")
+        player.cash -= self.rent
+        self.owner.cash += self.rent
+
+board = [0 for i in range(40)]
+board[30] = 1
+
+player_num = int(input("Enter Player number: "))
+players = []
+for i in range(player_num):
+    players.append(Player())
+
+property_list = [Property(60, 1, 2), Property(60, 3, 4)]
+for i in property_list:
+    board[i.loc] = i
+
+while True:
+    for i in range(player_num):
+        players[i].move()
