@@ -1,4 +1,3 @@
-
 import random
 
 class Player():
@@ -10,28 +9,31 @@ class Player():
         self.in_jail = False
         self.double_count = 0
         self.train = 0
+        self.utility = 0
+        self.end_turn = False
 
     def move(self):
-        if input() == "":
-            self.roll_1 = random.randrange(1, 7)
-            self.roll_2 = random.randrange(1, 7)
-            if self.roll_1 == self.roll_2:
-                self.double_count += 1
-            self.exit_jail()
-            if self.in_jail:
-                self.jail_turn -= 1
-                print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {len(self.owned)}")
-            elif self.double_count == 3:
-                self.check_jail()
-                print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {len(self.owned)}")
-            else:
-                self.loc += self.roll_1 + self.roll_2
-                self.pass_go()
-                print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {len(self.owned)}")
-                self.check_board()
-                if self.roll_1 == self.roll_2:
-                    self.move()
+        self.roll_1 = random.randrange(1, 7)
+        self.roll_2 = random.randrange(1, 7)
+        if self.roll_1 == self.roll_2:
+            self.double_count += 1
+        self.exit_jail()
+        if self.in_jail:
+            self.jail_turn -= 1
+            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {len(self.owned)}")
+        elif self.double_count == 3:
+            self.check_jail()
+            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {len(self.owned)}")
+        else:
+            self.loc += self.roll_1 + self.roll_2
+            self.pass_go()
+            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {len(self.owned)}")
+            self.check_board()
+            self.check_bal()
+            if self.roll_1 == self.roll_2 and input() == "":
+                self.move()
         self.double_count = 0
+        self.end_turn = True
 
     def pass_go(self):
         if self.loc > 39:
@@ -67,7 +69,7 @@ class Player():
                 print("You are forced to paid $50 to exit.")
                 self.cash -= 50
                 self.in_jail = False
-            elif input("Enter 'Y' to pay $50 to exit jail.") == "Y":
+            elif input("Enter 'Y' to pay $50 to exit jail.").upper() == "Y":
                 self.cash -= 50
                 print("You paid $50 to exit jail.")
                 self.in_jail = False
@@ -80,6 +82,19 @@ class Player():
         elif board[self.loc] in self.owned:
             print("You landed on your own property.")
 
+    def check_bal(self):
+        while self.cash != abs(self.cash):
+            print("You have a negative balance, please fix it.")
+            self.cash = 0
+
+    def user_in(self):
+        print("M: to check property mortgage")
+        if input().upper() == "M":
+            self.user_mortgage()
+
+    def user_mortgage(self):
+        pass
+
 class Property():
     def __init__(self, name, cost, location, rent):
         self.name = name
@@ -88,6 +103,7 @@ class Property():
         self.rent = rent
         self.building = 0
         self.bought = False
+        self.mortgaged = False
 
     def buy(self, player):
         if self.bought == False:
@@ -100,18 +116,38 @@ class Property():
                 print(f"You bought {self.name} for ${self.cost}, ${player.cash} left.")
                 if type(self) == Train:
                     player.train += 1
-                    print(player.train)
+                elif type(self) == Utitlity:
+                    player.utility += 1
 
     def payment(self, player):
         player.cash -= self.rent
         self.owner.cash += self.rent
         print(f"You paid Player{self.owner.name} ${self.rent} for the rent of {self.name}, ${player.cash} left.")
 
+    def mortgage(self):
+        if not self.mortgaged:
+            self.owner.cash += self.cost/2
+            self.mortgaged = True
+            print(f"You mortgaged {self.name} and have ${self.owner.cash} now.")
+
+    def pay_mortgage(self):
+        if self.mortgaged and self.owner.cash >= int(self.cost/2*1.1):
+            self.owner.cash -= int(self.cost/2*1.1)
+            self.mortgaged = False
+            print(f"You paid off your mortgage for {self.name}, ${self.owner.cash} left")
+
+
 class Train(Property):
     def payment(self, player):
         player.cash -= self.rent*(2**(self.owner.train-1))
         self.owner.cash += self.rent*(2**(self.owner.train-1))
-        print(f"You paid Player{self.owner.name} ${self.rent*(2**(self.owner.train-1))} for the rent of {self.name}, ${player.cash} left.")
+        print(f"You paid Player{self.owner.name} ${self.rent*(2**(self.owner.train-1))} for travelling with {self.name}, ${player.cash} left.")
+
+class Utitlity(Property):
+    def payment(self, player):
+        player.cash -= (self.roll_1 + self.roll_2)*(6*self.utility-2)
+        self.owner.cash += (self.roll_1 + self.roll_2)*(6*self.utility-2)
+        print(f"You paid Player{self.owner.name} ${(self.roll_1 + self.roll_2)*(6*self.utility-2)} for the expense of {self.name}, ${player.cash} left.")
 
 board = [0 for i in range(40)]
 board[30] = 1
@@ -131,7 +167,8 @@ property_list = [Property("Brown1", 60, 1, 2), Property("Brown2", 60, 3, 4),
                  Property("Yellow1", 260, 26, 22), Property("Yellow2", 260, 27, 22), Property("Yellow3", 280, 29, 24),
                  Property("DarkGreen1", 300, 31, 26), Property("DarkGreen2", 300, 32, 26), Property("DarkGreen3", 320, 34, 28),
                  Property("DarkBlue1", 350, 37, 35), Property("DarkBlue2", 400, 39, 50),
-                 Train("Train1", 200, 5, 25), Train("Train2", 200, 15, 25), Train("Train3", 200, 25, 25), Train("Train4", 200, 35, 25)
+                 Train("Train1", 200, 5, 25), Train("Train2", 200, 15, 25), Train("Train3", 200, 25, 25), Train("Train4", 200, 35, 25),
+                 Utitlity("Electricity", 150, 11, 0), Utitlity("Water", 150, 28, 0)
                  ]
 for i in property_list:
     board[i.loc] = i
@@ -140,4 +177,10 @@ for i in property_list:
 while True:
     for i in range(player_num):
         print(f"\nPlayer{i+1}'s turn.", end= "")
-        players[i].move()
+        players[i].end_turn = False
+        while not players[i].end_turn:
+            user_input = input()
+            if user_input == "":
+                players[i].move()
+            elif user_input.upper() == "I":
+                players[i].user_in()
