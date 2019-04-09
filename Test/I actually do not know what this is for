@@ -11,6 +11,7 @@ class Player():
         self.train = 0
         self.utility = 0
         self.end_turn = False
+        self.mortgaged = []
 
     def move(self):
         self.roll_1 = random.randrange(1, 7)
@@ -30,8 +31,8 @@ class Player():
             print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {len(self.owned)}")
             self.check_board()
             self.check_bal()
-            if self.roll_1 == self.roll_2 and input() == "":
-                self.move()
+            if self.roll_1 == self.roll_2:
+                self.process_event()
         self.double_count = 0
         self.end_turn = True
 
@@ -88,12 +89,44 @@ class Player():
             self.cash = 0
 
     def user_in(self):
-        print("M: to check property mortgage")
-        if input().upper() == "M":
-            self.user_mortgage()
+        while True:
+            self.user_input = input("\nM: to check property mortgage \nR: to return \n").upper()
+            if self.user_input == "R":
+                break
+            elif self.user_input == "M":
+                self.user_mortgage()
 
     def user_mortgage(self):
-        pass
+        while True:
+            self.user_input = input("\nL: to check list of mortgaged property \nA: to check list of property available to mortgage \nM: to mortgage your property \nP: to repay mortgage \nR: to return \n").upper()
+            if self.user_input == "R":
+                break
+            elif self.user_input == "L":
+                if len(self.mortgaged) == 0:
+                    print("None of your properties mortgaged currently.")
+                else:
+                    print("Currently mortgaged:", end=" ")
+                    for i in self.mortgaged:
+                        print(f"{i.name}[{i.loc}]", end=" ")
+            elif self.user_input == "A":
+                if len(self.owned) == 0:
+                    print("You do not have any properties that is available to mortgage.")
+                else:
+                    print("Currently available to mortgage:", end=" ")
+                    for i in self.owned:
+                        print(f"{i.name}[{i.loc}],", end=" ")
+            elif self.user_input == "M":
+                print("Enter the location of the property you want to mortgage")
+                self.temp_input = int(input())
+                if board[self.temp_input] in self.owned:
+                    board[self.temp_input].mortgage()
+
+    def process_event(self):
+        user_input = input("Enter: to roll dices")
+        if user_input == "":
+            players[i].move()
+        elif user_input.upper() == "I":
+            players[i].user_in()
 
 class Property():
     def __init__(self, name, cost, location, rent):
@@ -106,7 +139,7 @@ class Property():
         self.mortgaged = False
 
     def buy(self, player):
-        if self.bought == False:
+        if self.bought == False and player.cash >= self.cost:
             print(f"You landed on an unbought property - {self.name}. \nEnter 'B' to buy this property.")
             if input() == "B":
                 self.bought = True
@@ -118,6 +151,9 @@ class Property():
                     player.train += 1
                 elif type(self) == Utitlity:
                     player.utility += 1
+        elif player.cash < self.cost:
+            print(f"You do not have enough money to afford this unbought property - {self.name}.")
+
 
     def payment(self, player):
         player.cash -= self.rent
@@ -128,12 +164,16 @@ class Property():
         if not self.mortgaged:
             self.owner.cash += self.cost/2
             self.mortgaged = True
+            self.owner.owned.remove(self)
+            self.owner.mortgaged.append(self)
             print(f"You mortgaged {self.name} and have ${self.owner.cash} now.")
 
     def pay_mortgage(self):
         if self.mortgaged and self.owner.cash >= int(self.cost/2*1.1):
             self.owner.cash -= int(self.cost/2*1.1)
             self.mortgaged = False
+            self.owner.mortgaged.remove(self)
+            self.owner.owned.append(self)
             print(f"You paid off your mortgage for {self.name}, ${self.owner.cash} left")
 
 
@@ -176,11 +216,7 @@ for i in property_list:
 
 while True:
     for i in range(player_num):
-        print(f"\nPlayer{i+1}'s turn.", end= "")
+        print(f"\nPlayer{i+1}'s turn.")
         players[i].end_turn = False
         while not players[i].end_turn:
-            user_input = input()
-            if user_input == "":
-                players[i].move()
-            elif user_input.upper() == "I":
-                players[i].user_in()
+            players[i].process_event()
