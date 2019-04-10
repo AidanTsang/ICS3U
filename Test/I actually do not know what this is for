@@ -21,14 +21,14 @@ class Player():
         self.exit_jail()
         if self.in_jail:
             self.jail_turn -= 1
-            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {len(self.owned)}")
+            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}")
         elif self.double_count == 3:
             self.check_jail()
-            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {len(self.owned)}")
+            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}")
         else:
             self.loc += self.roll_1 + self.roll_2
             self.pass_go()
-            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}, {len(self.owned)}")
+            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}")
             self.check_board()
             self.check_bal()
             if self.roll_1 == self.roll_2:
@@ -45,12 +45,12 @@ class Player():
     def check_board(self):
         if isinstance(board[self.loc], Property):
             self.property()
-        elif board[self.loc] == 1:
+        elif board[self.loc] == "Jail":
             self.check_jail()
-        elif board[self.loc] == 2:
+        elif board[self.loc] == "Income Tax":
             self.cash -= 200
             print(f"You paid $200 for income tax, ${self.cash} left.")
-        elif board[self.loc] == 3:
+        elif board[self.loc] == "Luxury Tax":
             self.cash -= 100
             print(f"You paid $100 for luxury tax, ${self.cash} left.")
 
@@ -60,6 +60,7 @@ class Player():
             self.loc = 10
             self.jail_turn = 2
             self.in_jail = True
+            self.end_turn = True
 
     def exit_jail(self):
         if self.in_jail:
@@ -86,7 +87,7 @@ class Player():
     def check_bal(self):
         while self.cash != abs(self.cash):
             print("You have a negative balance, please fix it.")
-            self.cash = 0
+            self.user_in()
 
     def user_in(self):
         while True:
@@ -114,19 +115,40 @@ class Player():
                 else:
                     print("Currently available to mortgage:", end=" ")
                     for i in self.owned:
-                        print(f"{i.name}[{i.loc}],", end=" ")
+                        print(f"{i.name}[{i.loc}]", end=" ")
             elif self.user_input == "M":
                 print("Enter the location of the property you want to mortgage")
-                self.temp_input = int(input())
-                if board[self.temp_input] in self.owned:
-                    board[self.temp_input].mortgage()
-
+                try:
+                    self.temp_input = int(input())
+                except ValueError:
+                    print("Invalid input, please enter the location of the property on the board (0-39).")
+                else:
+                    if board[self.temp_input] in self.owned:
+                        board[self.temp_input].mortgage()
+                    elif isinstance(board[self.temp_input], Property):
+                        print("This property is not available for you to mortgage.")
+                    else:
+                        print("This location is not a property.")
+            elif self.user_input == "P":
+                print("Enter the location of the property you want to pay back the mortgage.")
+                try:
+                    self.temp_input = int(input())
+                except ValueError:
+                    print("Invalid input, please enter the location of the property on the board (0-39).")
+                else:
+                    if board[self.temp_input] in self.mortgaged:
+                        board[self.temp_input].pay_mortgage()
+                    elif isinstance(board[self.temp_input], Property):
+                        print("This property is not currently mortgaged or it is not owned by you.")
+                    else:
+                        print("This location is not a property.")
     def process_event(self):
-        user_input = input("Enter: to roll dices")
-        if user_input == "":
-            players[i].move()
-        elif user_input.upper() == "I":
-            players[i].user_in()
+        while not players[i].end_turn:
+            user_input = input("Enter: to roll dices")
+            if user_input == "":
+                players[i].move()
+            elif user_input.upper() == "I":
+                players[i].user_in()
 
 class Property():
     def __init__(self, name, cost, location, rent):
@@ -141,7 +163,7 @@ class Property():
     def buy(self, player):
         if self.bought == False and player.cash >= self.cost:
             print(f"You landed on an unbought property - {self.name}. \nEnter 'B' to buy this property.")
-            if input() == "B":
+            if input().upper() == "B":
                 self.bought = True
                 self.owner = player
                 player.cash -= self.cost
@@ -152,7 +174,10 @@ class Property():
                 elif type(self) == Utitlity:
                     player.utility += 1
         elif player.cash < self.cost:
-            print(f"You do not have enough money to afford this unbought property - {self.name}.")
+            print(f"You do not have enough money to afford this unbought property - {self.name}. \nEnter 'I' to open user interface.")
+            if input().upper() == "I":
+                player.user_in()
+                self.buy(player)
 
 
     def payment(self, player):
@@ -166,7 +191,11 @@ class Property():
             self.mortgaged = True
             self.owner.owned.remove(self)
             self.owner.mortgaged.append(self)
-            print(f"You mortgaged {self.name} and have ${self.owner.cash} now.")
+            if type(self) == Train:
+                self.owner.train -= 1
+            elif type(self) == Utitlity:
+                self.owner.utility -= 1
+            print(f"You mortgaged {self.name} and gained ${self.cost/2}. You have ${self.owner.cash} now.")
 
     def pay_mortgage(self):
         if self.mortgaged and self.owner.cash >= int(self.cost/2*1.1):
@@ -174,7 +203,11 @@ class Property():
             self.mortgaged = False
             self.owner.mortgaged.remove(self)
             self.owner.owned.append(self)
-            print(f"You paid off your mortgage for {self.name}, ${self.owner.cash} left")
+            if type(self) == Train:
+                self.owner.train += 1
+            elif type(self) == Utitlity:
+                self.owner.utility += 1
+            print(f"You paid off your mortgage for {self.name} with ${int(self.cost/2*1.1)}. You have ${self.owner.cash} left")
 
 
 class Train(Property):
@@ -189,34 +222,36 @@ class Utitlity(Property):
         self.owner.cash += (self.roll_1 + self.roll_2)*(6*self.utility-2)
         print(f"You paid Player{self.owner.name} ${(self.roll_1 + self.roll_2)*(6*self.utility-2)} for the expense of {self.name}, ${player.cash} left.")
 
-board = [0 for i in range(40)]
-board[30] = 1
-board[4] = 2
-board[38] = 3
+def set_up():
+    global board, player_num, players
+    board = [0 for i in range(40)]
+    board[0] = "Go"
+    board[30] = "Jail"
+    board[4] = "Income Tax"
+    board[38] = "Luxury Tax"
 
-player_num = int(input("Enter Player number: "))
-players = []
-for i in range(player_num):
-    players.append(Player(i+1))
+    player_num = int(input("Enter Player number: "))
+    players = []
+    for i in range(player_num):
+        players.append(Player(i+1))
 
-property_list = [Property("Brown1", 60, 1, 2), Property("Brown2", 60, 3, 4),
-                 Property("LightBlue1", 100, 6, 6), Property("LightBlue2", 100, 8, 6), Property("LightBlue2", 120, 9, 8),
-                 Property("Violet1", 140, 11, 10), Property("Violet2", 140, 13, 10), Property("Violet3", 160, 14, 12),
-                 Property("Orange1", 180, 16, 14), Property("Orange2", 180, 18, 14), Property("Orange3", 200, 19, 16),
-                 Property("Red1", 220, 21, 18), Property("Red2", 220, 23, 18), Property("Red3", 240, 24, 20),
-                 Property("Yellow1", 260, 26, 22), Property("Yellow2", 260, 27, 22), Property("Yellow3", 280, 29, 24),
-                 Property("DarkGreen1", 300, 31, 26), Property("DarkGreen2", 300, 32, 26), Property("DarkGreen3", 320, 34, 28),
-                 Property("DarkBlue1", 350, 37, 35), Property("DarkBlue2", 400, 39, 50),
-                 Train("Train1", 200, 5, 25), Train("Train2", 200, 15, 25), Train("Train3", 200, 25, 25), Train("Train4", 200, 35, 25),
-                 Utitlity("Electricity", 150, 11, 0), Utitlity("Water", 150, 28, 0)
-                 ]
-for i in property_list:
-    board[i.loc] = i
+    property_list = [Property("Brown1", 60, 1, 2), Property("Brown2", 60, 3, 4),
+                     Property("LightBlue1", 100, 6, 6), Property("LightBlue2", 100, 8, 6), Property("LightBlue2", 120, 9, 8),
+                     Property("Violet1", 140, 11, 10), Property("Violet2", 140, 13, 10), Property("Violet3", 160, 14, 12),
+                     Property("Orange1", 180, 16, 14), Property("Orange2", 180, 18, 14), Property("Orange3", 200, 19, 16),
+                     Property("Red1", 220, 21, 18), Property("Red2", 220, 23, 18), Property("Red3", 240, 24, 20),
+                     Property("Yellow1", 260, 26, 22), Property("Yellow2", 260, 27, 22), Property("Yellow3", 280, 29, 24),
+                     Property("DarkGreen1", 300, 31, 26), Property("DarkGreen2", 300, 32, 26), Property("DarkGreen3", 320, 34, 28),
+                     Property("DarkBlue1", 350, 37, 35), Property("DarkBlue2", 400, 39, 50),
+                     Train("Train1", 200, 5, 25), Train("Train2", 200, 15, 25), Train("Train3", 200, 25, 25), Train("Train4", 200, 35, 25),
+                     Utitlity("Electricity", 150, 11, 0), Utitlity("Water", 150, 28, 0)
+                     ]
+    for i in property_list:
+        board[i.loc] = i
 
-
+set_up()
 while True:
     for i in range(player_num):
         print(f"\nPlayer{i+1}'s turn.")
         players[i].end_turn = False
-        while not players[i].end_turn:
-            players[i].process_event()
+        players[i].process_event()
