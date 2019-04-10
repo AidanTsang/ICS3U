@@ -14,8 +14,8 @@ class Player():
         self.mortgaged = []
 
     def move(self):
-        self.roll_1 = random.randrange(1, 7)
-        self.roll_2 = random.randrange(1, 7)
+        self.roll_1 = random.randrange(0, 1)
+        self.roll_2 = random.randrange(1, 2)
         if self.roll_1 == self.roll_2:
             self.double_count += 1
         self.exit_jail()
@@ -64,16 +64,16 @@ class Player():
 
     def exit_jail(self):
         if self.in_jail:
-            if self.roll_1 == self.roll_2:
+            if input("Enter 'Y' to pay $50 to exit jail.").upper() == "Y":
+                self.cash -= 50
+                print("You paid $50 to exit jail.")
+                self.in_jail = False
+            elif self.roll_1 == self.roll_2:
                 print("You exited jail with a double.")
                 self.in_jail = False
             elif self.jail_turn == 0:
                 print("You are forced to paid $50 to exit.")
                 self.cash -= 50
-                self.in_jail = False
-            elif input("Enter 'Y' to pay $50 to exit jail.").upper() == "Y":
-                self.cash -= 50
-                print("You paid $50 to exit jail.")
                 self.in_jail = False
 
     def property(self):
@@ -91,7 +91,7 @@ class Player():
 
     def user_in(self):
         while True:
-            self.user_input = input("\nM: to manage property mortgage \nB: to manage propert buildings \nR: to return \n").upper()
+            self.user_input = input("\nM: to manage properties' mortgage \nB: to manage properties' buildings \nR: to return \n").upper()
             if self.user_input == "R":
                 break
             elif self.user_input == "M":
@@ -110,14 +110,16 @@ class Player():
                 else:
                     print("Currently mortgaged:", end=" ")
                     for i in self.mortgaged:
-                        print(f"{i.name}[{i.loc}]", end=" ")
+                        print(f"{i.name}[{i.loc}]", end=", ")
+                    print("")
             elif self.user_input == "A":
                 if len(self.owned) == 0:
                     print("You do not have any properties that is available to mortgage.")
                 else:
                     print("Currently available to mortgage:", end=" ")
                     for i in self.owned:
-                        print(f"{i.name}[{i.loc}]", end=" ")
+                        print(f"{i.name}[{i.loc}]", end=", ")
+                    print("")
             elif self.user_input == "M":
                 print("Enter the location of the property you want to mortgage")
                 try:
@@ -146,7 +148,44 @@ class Player():
                         print("This location is not a property.")
 
     def user_building(self):
-        pass
+        while True:
+            self.user_input = input("\nL: to check your properties buildings. \nA: to check properties available to build buildings \nB: to build buildings on properties \nS: to sell buildings on properties \nR: to return \n").upper()
+            if self.user_input == "R":
+                break
+            elif self.user_input == "L":
+                for i in self.owned:
+                    if i.building <= 4:
+                        print(f"{i.name}[{i.loc}]: {i.building} houses", end= ",  ")
+                    else:
+                        print(f"{i.name}[{i.loc}]: 1 hotel", end=",  ")
+                print("")
+            elif self.user_input == "A":
+                self.full_set_count = 0
+                for i in self.owned:
+                    if type(i) == Property:
+                        if i.full_set == True:
+                            print(f"{i.name}[{i.loc}] set:({i.set})", end=",  ")
+                            self.full_set_count += 1
+                if self.full_set_count == 0:
+                    print("There is no properties available to build buildings", end="")
+                print("")
+            elif self.user_input == "B":
+                print("Enter the location of the property you want to build buildings")
+                try:
+                    self.temp_input = int(input())
+                except ValueError:
+                    print("Invalid input, please enter the location of the property on the board (0-39).")
+                else:
+                    board[self.temp_input].buy_building()
+            elif self.user_input == "S":
+                print("Enter the location of the property you want to build buildings")
+                try:
+                    self.temp_input = int(input())
+                except ValueError:
+                    print("Invalid input, please enter the location of the property on the board (0-39).")
+                else:
+                    board[self.temp_input].sell_building()
+
 
     def process_event(self):
         while not players[i].end_turn:
@@ -207,7 +246,9 @@ class Property():
             if i not in self.owner.owned:
                 self.full_set = False
                 break
-            self.full_set = True
+        else:
+            for i in property_list[self.set]:
+                i.full_set = True
 
     def mortgage(self):
         if not self.mortgaged:
