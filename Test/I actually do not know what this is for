@@ -91,11 +91,13 @@ class Player():
 
     def user_in(self):
         while True:
-            self.user_input = input("\nM: to check property mortgage \nR: to return \n").upper()
+            self.user_input = input("\nM: to manage property mortgage \nB: to manage propert buildings \nR: to return \n").upper()
             if self.user_input == "R":
                 break
             elif self.user_input == "M":
                 self.user_mortgage()
+            elif self.user_input == "B":
+                self.user_building()
 
     def user_mortgage(self):
         while True:
@@ -142,6 +144,10 @@ class Player():
                         print("This property is not currently mortgaged or it is not owned by you.")
                     else:
                         print("This location is not a property.")
+
+    def user_building(self):
+        pass
+
     def process_event(self):
         while not players[i].end_turn:
             user_input = input("Enter: to roll dices")
@@ -149,6 +155,7 @@ class Player():
                 players[i].move()
             elif user_input.upper() == "I":
                 players[i].user_in()
+
 
 class Property():
     def __init__(self, name, cost, location, rent):
@@ -159,6 +166,9 @@ class Property():
         self.building = 0
         self.bought = False
         self.mortgaged = False
+        if type(self) == Property:
+            self.set = self.loc//5
+            self.full_set = False
 
     def buy(self, player):
         if self.bought == False and player.cash >= self.cost:
@@ -169,21 +179,35 @@ class Property():
                 player.cash -= self.cost
                 player.owned.append(self)
                 print(f"You bought {self.name} for ${self.cost}, ${player.cash} left.")
-                if type(self) == Train:
+                if type(self) == Property:
+                    self.check_set()
+                elif type(self) == Train:
                     player.train += 1
-                elif type(self) == Utitlity:
+                elif type(self) == Utility:
                     player.utility += 1
+
         elif player.cash < self.cost:
             print(f"You do not have enough money to afford this unbought property - {self.name}. \nEnter 'I' to open user interface.")
             if input().upper() == "I":
                 player.user_in()
                 self.buy(player)
 
-
     def payment(self, player):
-        player.cash -= self.rent
-        self.owner.cash += self.rent
-        print(f"You paid Player{self.owner.name} ${self.rent} for the rent of {self.name}, ${player.cash} left.")
+        if self.full_set and self.building == 0:
+            player.cash -= 2*self.rent[0]
+            self.owner.cash += 2*self.rent[0]
+            print(f"You paid Player{self.owner.name} ${2*self.rent[0]} for the rent of {self.name}, ${player.cash} left.")
+        else:
+            player.cash -= self.rent[self.building]
+            self.owner.cash += self.rent[self.building]
+            print(f"You paid Player{self.owner.name} ${self.rent[self.building]} for the rent of {self.name}, ${player.cash} left.")
+
+    def check_set(self):
+        for i in property_list[self.set]:
+            if i not in self.owner.owned:
+                self.full_set = False
+                break
+            self.full_set = True
 
     def mortgage(self):
         if not self.mortgaged:
@@ -193,7 +217,7 @@ class Property():
             self.owner.mortgaged.append(self)
             if type(self) == Train:
                 self.owner.train -= 1
-            elif type(self) == Utitlity:
+            elif type(self) == Utility:
                 self.owner.utility -= 1
             print(f"You mortgaged {self.name} and gained ${self.cost/2}. You have ${self.owner.cash} now.")
 
@@ -205,9 +229,29 @@ class Property():
             self.owner.owned.append(self)
             if type(self) == Train:
                 self.owner.train += 1
-            elif type(self) == Utitlity:
+            elif type(self) == Utility:
                 self.owner.utility += 1
             print(f"You paid off your mortgage for {self.name} with ${int(self.cost/2*1.1)}. You have ${self.owner.cash} left")
+
+    def buy_building(self):
+        if type(self) == Property and self.full_set and self.building < 5:
+            self.owner.cash -= (self.loc//10+1)*50
+            self.building += 1
+            print(f"You spent ${(self.loc//10+1)*50} to buy a building at {self.name}")
+        elif self.building == 5:
+            print(f"You have already reach the maximum building for {self.name}")
+        elif not self.full_set:
+            print("A full set is required to buy buildings")
+        elif type(self) != Property:
+            print("Train stations or utilities is not available to build buildings")
+
+    def sell_building(self):
+        if self.building > 0:
+            self.owner.cash += (self.loc//10+1)*25
+            self.building -= 1
+            print(f"You gained {(self.loc//10+1)*25} from selling a building at {self.name}")
+        elif self.building == 0:
+            print(f"There is no buildings on {self.name}")
 
 
 class Train(Property):
@@ -216,14 +260,16 @@ class Train(Property):
         self.owner.cash += self.rent*(2**(self.owner.train-1))
         print(f"You paid Player{self.owner.name} ${self.rent*(2**(self.owner.train-1))} for travelling with {self.name}, ${player.cash} left.")
 
-class Utitlity(Property):
+
+class Utility(Property):
     def payment(self, player):
         player.cash -= (self.roll_1 + self.roll_2)*(6*self.utility-2)
         self.owner.cash += (self.roll_1 + self.roll_2)*(6*self.utility-2)
         print(f"You paid Player{self.owner.name} ${(self.roll_1 + self.roll_2)*(6*self.utility-2)} for the expense of {self.name}, ${player.cash} left.")
 
+
 def set_up():
-    global board, player_num, players
+    global board, player_num, players, property_list
     board = [0 for i in range(40)]
     board[0] = "Go"
     board[30] = "Jail"
@@ -235,19 +281,21 @@ def set_up():
     for i in range(player_num):
         players.append(Player(i+1))
 
-    property_list = [Property("Brown1", 60, 1, 2), Property("Brown2", 60, 3, 4),
-                     Property("LightBlue1", 100, 6, 6), Property("LightBlue2", 100, 8, 6), Property("LightBlue2", 120, 9, 8),
-                     Property("Violet1", 140, 11, 10), Property("Violet2", 140, 13, 10), Property("Violet3", 160, 14, 12),
-                     Property("Orange1", 180, 16, 14), Property("Orange2", 180, 18, 14), Property("Orange3", 200, 19, 16),
-                     Property("Red1", 220, 21, 18), Property("Red2", 220, 23, 18), Property("Red3", 240, 24, 20),
-                     Property("Yellow1", 260, 26, 22), Property("Yellow2", 260, 27, 22), Property("Yellow3", 280, 29, 24),
-                     Property("DarkGreen1", 300, 31, 26), Property("DarkGreen2", 300, 32, 26), Property("DarkGreen3", 320, 34, 28),
-                     Property("DarkBlue1", 350, 37, 35), Property("DarkBlue2", 400, 39, 50),
-                     Train("Train1", 200, 5, 25), Train("Train2", 200, 15, 25), Train("Train3", 200, 25, 25), Train("Train4", 200, 35, 25),
-                     Utitlity("Electricity", 150, 11, 0), Utitlity("Water", 150, 28, 0)
-                     ]
-    for i in property_list:
-        board[i.loc] = i
+    Brown = [Property("Brown1", 60, 1, [2, 10, 30, 90, 160, 250]), Property("Brown2", 60, 3, [4, 20, 60, 180, 320, 450])]
+    LightBlue = [Property("LightBlue1", 100, 6, [6, 30, 90, 270, 400, 550]), Property("LightBlue2", 100, 8, [6, 30, 90, 270, 400, 550]), Property("LightBlue2", 120, 9, [8, 40, 100, 300, 450, 600])]
+    Violet = [Property("Violet1", 140, 11, [10, 50, 150, 450, 625, 750]), Property("Violet2", 140, 13, [10, 50, 150, 450, 625, 750]), Property("Violet3", 160, 14, [12, 60, 180, 500, 700, 900])]
+    Orange = [Property("Orange1", 180, 16, [14, 70, 200, 550, 750, 950]), Property("Orange2", 180, 18, [14, 70, 200, 550, 750, 950]), Property("Orange3", 200, 19, [16, 80, 220, 600, 800, 1000])]
+    Red = [Property("Red1", 220, 21, [18, 90, 250, 700, 875, 1050]), Property("Red2", 220, 23, [18, 90, 250, 700, 875, 1050]), Property("Red3", 240, 24, [20, 100, 300, 750, 925, 1100])]
+    Yellow = [Property("Yellow1", 260, 26, [22, 110, 330, 800, 975, 1150]), Property("Yellow2", 260, 27, [22, 110, 330, 800, 975, 1150]), Property("Yellow3", 280, 29, [24, 120, 360, 850, 1025, 1200])]
+    DarkGreen = [Property("DarkGreen1", 300, 31, [26, 130, 390, 900, 1100, 1275]), Property("DarkGreen2", 300, 32, [26, 130, 390, 900, 1100, 1275]), Property("DarkGreen3", 320, 34, [28, 150, 450, 1000, 1200, 1400])]
+    DarkBlue = [Property("DarkBlue1", 350, 37, [35, 175, 500, 1100, 1300, 1500]), Property("DarkBlue2", 400, 39, [50, 200, 600, 1400, 1700, 2000])]
+    Trains = [Train("Train1", 200, 5, 25), Train("Train2", 200, 15, 25), Train("Train3", 200, 25, 25), Train("Train4", 200, 35, 25)]
+    Utilities = [Utility("Electricity", 150, 11, 0), Utility("Water", 150, 28, 0)]
+    property_list = [Brown, LightBlue, Violet, Orange, Red, Yellow, DarkGreen, DarkBlue, Trains, Utilities]
+    for set in property_list:
+        for i in set:
+            board[i.loc] = i
+
 
 set_up()
 while True:
