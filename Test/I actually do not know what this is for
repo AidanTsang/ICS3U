@@ -12,10 +12,11 @@ class Player():
         self.utility = 0
         self.end_turn = False
         self.mortgaged = []
+        self.game_over = False
 
     def move(self):
-        self.roll_1 = random.randrange(0, 1)
-        self.roll_2 = random.randrange(1, 2)
+        self.roll_1 = random.randrange(1, 7)
+        self.roll_2 = random.randrange(1, 7)
         if self.roll_1 == self.roll_2:
             self.double_count += 1
         self.exit_jail()
@@ -31,7 +32,7 @@ class Player():
             print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}")
             self.check_board()
             self.check_bal()
-            if self.roll_1 == self.roll_2:
+            if self.roll_1 == self.roll_2 and not self.game_over:
                 self.process_event()
         self.double_count = 0
         self.end_turn = True
@@ -64,10 +65,11 @@ class Player():
 
     def exit_jail(self):
         if self.in_jail:
-            if input("Enter 'Y' to pay $50 to exit jail.").upper() == "Y":
-                self.cash -= 50
-                print("You paid $50 to exit jail.")
-                self.in_jail = False
+            if self.cash >= 50:
+                if input("Enter 'Y' to pay $50 to exit jail.").upper() == "Y":
+                    self.cash -= 50
+                    print("You paid $50 to exit jail.")
+                    self.in_jail = False
             elif self.roll_1 == self.roll_2:
                 print("You exited jail with a double.")
                 self.in_jail = False
@@ -85,13 +87,18 @@ class Player():
             print("You landed on your own property.")
 
     def check_bal(self):
-        while self.cash != abs(self.cash):
+        global game_over
+        while self.cash < 0:
             print("You have a negative balance, please fix it.")
+            if self.cash < 0 and len(self.owned) == 0:
+                self.game_over = True
+                self.lose()
+                break
             self.user_in()
 
     def user_in(self):
         while True:
-            self.user_input = input("\nM: to manage properties' mortgage \nB: to manage properties' buildings \nR: to return \n").upper()
+            self.user_input = input("\n[M]: to manage properties' mortgage \n[B]: to manage properties' buildings \n[R]: to return \n").upper()
             if self.user_input == "R":
                 break
             elif self.user_input == "M":
@@ -101,7 +108,7 @@ class Player():
 
     def user_mortgage(self):
         while True:
-            self.user_input = input("\nL: to check list of mortgaged property \nA: to check list of property available to mortgage \nM: to mortgage your property \nP: to repay mortgage \nR: to return \n").upper()
+            self.user_input = input("\n[L]: to check list of mortgaged property \n[A]: to check list of property available to mortgage \n[M]: to mortgage your property \n[P]: to repay mortgage \n[R]: to return \n").upper()
             if self.user_input == "R":
                 break
             elif self.user_input == "L":
@@ -149,7 +156,7 @@ class Player():
 
     def user_building(self):
         while True:
-            self.user_input = input("\nL: to check your properties buildings. \nA: to check properties available to build buildings \nB: to build buildings on properties \nS: to sell buildings on properties \nR: to return \n").upper()
+            self.user_input = input("\n[L]: to check your properties buildings. \n[A]: to check properties available to build buildings \n[B]: to build buildings on properties \n[S]: to sell buildings on properties \n[R]: to return \n").upper()
             if self.user_input == "R":
                 break
             elif self.user_input == "L":
@@ -163,7 +170,7 @@ class Player():
                 self.full_set_count = 0
                 for i in self.owned:
                     if type(i) == Property:
-                        if i.full_set == True:
+                        if i.full_set == True and i in self.owned:
                             print(f"{i.name}[{i.loc}] set:({i.set})", end=",  ")
                             self.full_set_count += 1
                 if self.full_set_count == 0:
@@ -186,15 +193,25 @@ class Player():
                 else:
                     board[self.temp_input].sell_building()
 
-
     def process_event(self):
-        while not players[i].end_turn:
-            user_input = input("Enter: to roll dices")
-            if user_input == "":
-                players[i].move()
-            elif user_input.upper() == "I":
-                players[i].user_in()
+        while not self.end_turn:
+            self.user_input = input("Enter: to roll dices")
+            if self.user_input == "":
+                self.move()
+            elif self.user_input.upper() == "I":
+                self.user_in()
 
+    def lose(self):
+        self.game_over = True
+        for i in self.owned:
+            i.bought = False
+            i.mortgaged = False
+            self.owned.remove(i)
+        for i in self.mortgaged:
+            i.bought = False
+            i.mortgaged = False
+            self.mortgaged.remove(i)
+        players.remove(self)
 
 class Property():
     def __init__(self, name, cost, location, rent):
@@ -210,9 +227,9 @@ class Property():
             self.full_set = False
 
     def buy(self, player):
-        if self.bought == False and player.cash >= self.cost:
-            print(f"You landed on an unbought property - {self.name}. \nEnter 'B' to buy this property.")
-            if input().upper() == "B":
+        if not self.bought and player.cash >= self.cost:
+            self.temp_input = input(f"You landed on an unbought property - {self.name}. \nEnter 'B' to buy this property.").upper()
+            if self.temp_input == "B":
                 self.bought = True
                 self.owner = player
                 player.cash -= self.cost
@@ -224,9 +241,12 @@ class Property():
                     player.train += 1
                 elif type(self) == Utility:
                     player.utility += 1
+            elif self.temp_input == "I":
+                player.user_in()
+                self.buy(player)
 
         elif player.cash < self.cost:
-            print(f"You do not have enough money to afford this unbought property - {self.name}. \nEnter 'I' to open user interface.")
+            print(f"You do not have enough money to afford this unbought property - {self.name}(${self.cost}). \nEnter 'I' to open user interface.")
             if input().upper() == "I":
                 player.user_in()
                 self.buy(player)
@@ -251,7 +271,7 @@ class Property():
                 i.full_set = True
 
     def mortgage(self):
-        if not self.mortgaged:
+        if not self.mortgaged and self.building == 0:
             self.owner.cash += self.cost/2
             self.mortgaged = True
             self.owner.owned.remove(self)
@@ -261,6 +281,8 @@ class Property():
             elif type(self) == Utility:
                 self.owner.utility -= 1
             print(f"You mortgaged {self.name} and gained ${self.cost/2}. You have ${self.owner.cash} now.")
+        elif self.building > 0:
+            print(f"You need to sell the buildings at {self.name} before you can mortgage it.")
 
     def pay_mortgage(self):
         if self.mortgaged and self.owner.cash >= int(self.cost/2*1.1):
@@ -310,7 +332,7 @@ class Utility(Property):
 
 
 def set_up():
-    global board, player_num, players, property_list
+    global board, player_num, players, property_list, game_over
     board = [0 for i in range(40)]
     board[0] = "Go"
     board[30] = "Jail"
@@ -323,7 +345,7 @@ def set_up():
         players.append(Player(i+1))
 
     Brown = [Property("Brown1", 60, 1, [2, 10, 30, 90, 160, 250]), Property("Brown2", 60, 3, [4, 20, 60, 180, 320, 450])]
-    LightBlue = [Property("LightBlue1", 100, 6, [6, 30, 90, 270, 400, 550]), Property("LightBlue2", 100, 8, [6, 30, 90, 270, 400, 550]), Property("LightBlue2", 120, 9, [8, 40, 100, 300, 450, 600])]
+    LightBlue = [Property("LightBlue1", 100, 6, [6, 30, 90, 270, 400, 550]), Property("LightBlue2", 100, 8, [6, 30, 90, 270, 400, 550]), Property("LightBlue3", 120, 9, [8, 40, 100, 300, 450, 600])]
     Violet = [Property("Violet1", 140, 11, [10, 50, 150, 450, 625, 750]), Property("Violet2", 140, 13, [10, 50, 150, 450, 625, 750]), Property("Violet3", 160, 14, [12, 60, 180, 500, 700, 900])]
     Orange = [Property("Orange1", 180, 16, [14, 70, 200, 550, 750, 950]), Property("Orange2", 180, 18, [14, 70, 200, 550, 750, 950]), Property("Orange3", 200, 19, [16, 80, 220, 600, 800, 1000])]
     Red = [Property("Red1", 220, 21, [18, 90, 250, 700, 875, 1050]), Property("Red2", 220, 23, [18, 90, 250, 700, 875, 1050]), Property("Red3", 240, 24, [20, 100, 300, 750, 925, 1100])]
@@ -331,16 +353,23 @@ def set_up():
     DarkGreen = [Property("DarkGreen1", 300, 31, [26, 130, 390, 900, 1100, 1275]), Property("DarkGreen2", 300, 32, [26, 130, 390, 900, 1100, 1275]), Property("DarkGreen3", 320, 34, [28, 150, 450, 1000, 1200, 1400])]
     DarkBlue = [Property("DarkBlue1", 350, 37, [35, 175, 500, 1100, 1300, 1500]), Property("DarkBlue2", 400, 39, [50, 200, 600, 1400, 1700, 2000])]
     Trains = [Train("Train1", 200, 5, 25), Train("Train2", 200, 15, 25), Train("Train3", 200, 25, 25), Train("Train4", 200, 35, 25)]
-    Utilities = [Utility("Electricity", 150, 11, 0), Utility("Water", 150, 28, 0)]
+    Utilities = [Utility("Electricity", 150, 12, 0), Utility("Water", 150, 28, 0)]
     property_list = [Brown, LightBlue, Violet, Orange, Red, Yellow, DarkGreen, DarkBlue, Trains, Utilities]
     for set in property_list:
         for i in set:
             board[i.loc] = i
 
+    game_over = False
 
 set_up()
-while True:
-    for i in range(player_num):
-        print(f"\nPlayer{i+1}'s turn.")
-        players[i].end_turn = False
-        players[i].process_event()
+while not game_over:
+    for i in players:
+        if len(players) == 1:
+            print(f"Player{i.name} win!")
+            game_over = True
+            break
+        if not i.game_over:
+            print(f"\nPlayer{i.name}'s turn.")
+            i.end_turn = False
+            i.process_event()
+
