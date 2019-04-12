@@ -374,9 +374,9 @@ class Train(Property):
 
 class Utility(Property):
     def payment(self, player):
-        player.cash -= (self.roll_1 + self.roll_2)*(6*self.utility-2)
-        self.owner.cash += (self.roll_1 + self.roll_2)*(6*self.utility-2)
-        print(f"You paid Player{self.owner.name} ${(self.roll_1 + self.roll_2)*(6*self.utility-2)} for the expense of {self.name}, ${player.cash} left.")
+        player.cash -= (player.roll_1 + player.roll_2)*(6*self.utility-2)
+        self.owner.cash += (player.roll_1 + player.roll_2)*(6*self.utility-2)
+        print(f"You paid Player{self.owner.name} ${(player.roll_1 + player.roll_2)*(6*player.utility-2)} for the expense of {self.name}, ${player.cash} left.")
 
 
 def set_up():
