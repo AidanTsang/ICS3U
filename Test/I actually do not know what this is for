@@ -22,14 +22,14 @@ class Player():
         self.exit_jail()
         if self.in_jail:
             self.jail_turn -= 1
-            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}")
+            print(f"Dice: [{self.roll_1}] [{self.roll_2}] \nLocation: {self.loc}, Cash: {self.cash}")
         elif self.double_count == 3:
             self.check_jail()
-            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}")
+            print(f"Dice: [{self.roll_1}] [{self.roll_2}] \nLocation: {self.loc}, Cash: {self.cash}")
         else:
             self.loc += self.roll_1 + self.roll_2
             self.pass_go()
-            print(f"Dice 1: {self.roll_1}, Dice 2: {self.roll_2}, Location: {self.loc}, Cash: {self.cash}")
+            print(f"Dice: [{self.roll_1}] [{self.roll_2}] \nLocation: {self.loc}, Cash: {self.cash}")
             self.check_board()
             self.check_bal()
             if self.roll_1 == self.roll_2 and not self.game_over:
@@ -65,8 +65,7 @@ class Player():
 
     def exit_jail(self):
         if self.in_jail:
-            if self.cash >= 50:
-                if input("Enter 'Y' to pay $50 to exit jail.").upper() == "Y":
+            if input("Enter 'Y' to pay $50 to exit jail.").upper() == "Y":
                     self.cash -= 50
                     print("You paid $50 to exit jail.")
                     self.in_jail = False
@@ -81,7 +80,7 @@ class Player():
     def property(self):
         if board[self.loc] not in self.owned and not board[self.loc].bought:
             board[self.loc].buy(self)
-        elif board[self.loc] not in self.owned and board[self.loc].bought:
+        elif board[self.loc] not in self.owned and board[self.loc].bought and board[self.loc] not in self.mortgaged:
             board[self.loc].payment(self)
         elif board[self.loc] in self.owned:
             print("You landed on your own property.")
@@ -98,13 +97,15 @@ class Player():
 
     def user_in(self):
         while True:
-            self.user_input = input("\n[M]: to manage properties' mortgage \n[B]: to manage properties' buildings \n[R]: to return \n").upper()
+            self.user_input = input("\n[M]: to manage properties' mortgage \n[B]: to manage properties' buildings \n[S]: to check status ot the board and players \n[R]: to return \n").upper()
             if self.user_input == "R":
                 break
             elif self.user_input == "M":
                 self.user_mortgage()
             elif self.user_input == "B":
                 self.user_building()
+            elif self.user_input == "S":
+                self.check_status()
 
     def user_mortgage(self):
         while True:
@@ -193,9 +194,48 @@ class Player():
                 else:
                     board[self.temp_input].sell_building()
 
+    def check_status(self):
+        while True:
+            self.temp_input = input("\n[P]: to check player status \n[B]: to check property and board status \n[R]: to return \n").upper()
+            if self.temp_input == "R":
+                break
+            elif self.temp_input == "P":
+                try:
+                    self.temp_input = int(input("Enter player number: "))
+                except ValueError:
+                    print("Invalid input, please enter the player number.")
+                else:
+                    for i in players:
+                        if i.name == self.temp_input:
+                            print(f"\nPlayer{i.name} \nCash: {i.cash} \nProperty owned: ")
+                            for j in i.owned:
+                                if type(j) == Property:
+                                    print(f"{j.name}[{j.loc}]-rent:{j.rent[j.building]}", end="  ")
+                                elif type(j) == Train:
+                                    print(f"{j.name}[{j.loc}]-rent:{j.rent*j.owner.train}", end="  ")
+                                elif type(j) == Utility:
+                                    print(f"{j.name}[{j.loc}]", end="  ")
+                            print("")
+            elif self.temp_input == "B":
+                try:
+                    self.temp_input = int(input("Enter the location of the property: "))
+                except ValueError:
+                    print("Invalid input, please enter the location of the property on the board (0-39).")
+                else:
+                    if not isinstance(board[self.temp_input], Property):
+                        print(f"{board[self.temp_input]}")
+                    elif board[self.temp_input].bought and type(board[self.temp_input]) == Property:
+                        print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought} \nOwner = {board[self.temp_input].owner.name} \nRent = {board[self.temp_input].rent[board[self.temp_input].building]}")
+                    elif board[self.temp_input].bought and type(board[self.temp_input]) == Train:
+                        print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought} \nOwner = {board[self.temp_input].owner.name} \nRent = {board[self.temp_input].rent*board[self.temp_input].owner.train}")
+                    elif board[self.temp_input].bought and type(board[self.temp_input]) == Utility:
+                        print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought} \nOwner = {board[self.temp_input].owner.name}")
+                    else:
+                        print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought}")
+
     def process_event(self):
         while not self.end_turn:
-            self.user_input = input("Enter: to roll dices")
+            self.user_input = input("\nEnter: to roll dices")
             if self.user_input == "":
                 self.move()
             elif self.user_input.upper() == "I":
@@ -212,6 +252,8 @@ class Player():
             i.mortgaged = False
             self.mortgaged.remove(i)
         players.remove(self)
+
+
 
 class Property():
     def __init__(self, name, cost, location, rent):
@@ -252,23 +294,26 @@ class Property():
                 self.buy(player)
 
     def payment(self, player):
-        if self.full_set and self.building == 0:
-            player.cash -= 2*self.rent[0]
-            self.owner.cash += 2*self.rent[0]
-            print(f"You paid Player{self.owner.name} ${2*self.rent[0]} for the rent of {self.name}, ${player.cash} left.")
-        else:
-            player.cash -= self.rent[self.building]
-            self.owner.cash += self.rent[self.building]
-            print(f"You paid Player{self.owner.name} ${self.rent[self.building]} for the rent of {self.name}, ${player.cash} left.")
+        if not self.mortgaged:
+            if self.full_set and self.building == 0:
+                player.cash -= 2*self.rent[0]
+                self.owner.cash += 2*self.rent[0]
+                print(f"You paid Player{self.owner.name} ${2*self.rent[0]} for the rent of {self.name}, ${player.cash} left.")
+            else:
+                player.cash -= self.rent[self.building]
+                self.owner.cash += self.rent[self.building]
+                print(f"You paid Player{self.owner.name} ${self.rent[self.building]} for the rent of {self.name}, ${player.cash} left.")
 
     def check_set(self):
         for i in property_list[self.set]:
-            if i not in self.owner.owned:
+            if i not in self.owner.owned and i not in self.owner.mortgaged:
                 self.full_set = False
                 break
         else:
             for i in property_list[self.set]:
                 i.full_set = True
+                print(f"{i.name}", end=" ")
+            print("is a full set now")
 
     def mortgage(self):
         if not self.mortgaged and self.building == 0:
@@ -298,9 +343,12 @@ class Property():
 
     def buy_building(self):
         if type(self) == Property and self.full_set and self.building < 5:
-            self.owner.cash -= (self.loc//10+1)*50
-            self.building += 1
-            print(f"You spent ${(self.loc//10+1)*50} to buy a building at {self.name}")
+            if self.owner.cash >= (self.loc//10+1)*50:
+                self.owner.cash -= (self.loc//10+1)*50
+                self.building += 1
+                print(f"You spent ${(self.loc//10+1)*50} to buy a building at {self.name}")
+            else:
+                print(f"You dont have enough money to buy house at {self.name}, you need ${((self.loc//10+1)*50)-self.owner.cash} more")
         elif self.building == 5:
             print(f"You have already reach the maximum building for {self.name}")
         elif not self.full_set:
@@ -365,11 +413,11 @@ set_up()
 while not game_over:
     for i in players:
         if len(players) == 1:
-            print(f"Player{i.name} win!")
+            print(f"\nPlayer{i.name} win!")
             game_over = True
             break
         if not i.game_over:
-            print(f"\nPlayer{i.name}'s turn.")
+            print(f"\n======================\nPlayer{i.name}'s turn")
             i.end_turn = False
             i.process_event()
 
