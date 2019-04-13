@@ -35,7 +35,12 @@ class Player():
             if self.roll_1 == self.roll_2 and not self.game_over:
                 self.process_event()
         self.double_count = 0
-        self.end_turn = True
+        while not self.end_turn:
+            self.user_input = input("\nEnter to end turn.").upper()
+            if self.user_input == "":
+                self.end_turn = True
+            elif self.user_input == "I":
+                self.user_in()
 
     def pass_go(self):
         if self.loc > 39:
@@ -97,38 +102,42 @@ class Player():
 
     def user_in(self):
         while True:
-            self.user_input = input("\n[M]: to manage properties' mortgage \n[B]: to manage properties' buildings \n[S]: to check status ot the board and players \n[R]: to return \n").upper()
-            if self.user_input == "R":
+            self.user_input = input("\n[1]: to manage properties' mortgage \n[2]: to manage properties' buildings \n[3]: to check status ot the board and players \n[4]: to trade \n[0]: to return \n").upper()
+            if self.user_input == "0":
                 break
-            elif self.user_input == "M":
+            elif self.user_input == "1":
                 self.user_mortgage()
-            elif self.user_input == "B":
+            elif self.user_input == "2":
                 self.user_building()
-            elif self.user_input == "S":
+            elif self.user_input == "3":
                 self.check_status()
+            elif self.user_input == "4":
+                self.trade()
 
     def user_mortgage(self):
         while True:
-            self.user_input = input("\n[L]: to check list of mortgaged property \n[A]: to check list of property available to mortgage \n[M]: to mortgage your property \n[P]: to repay mortgage \n[R]: to return \n").upper()
-            if self.user_input == "R":
+            self.user_input = input("\n[1]: to check list of mortgaged property \n[2]: to check list of property available to mortgage \n[3]: to mortgage your property \n[4]: to repay mortgage \n[0]: to return \n").upper()
+            if self.user_input == "0":
                 break
-            elif self.user_input == "L":
+            elif self.user_input == "1":
                 if len(self.mortgaged) == 0:
                     print("None of your properties mortgaged currently.")
                 else:
                     print("Currently mortgaged:", end=" ")
-                    for i in self.mortgaged:
-                        print(f"{i.name}[{i.loc}]", end=", ")
+                    for i in board:
+                        if i in self.mortgaged:
+                            print(f"{i.name}[{i.loc}]", end=", ")
                     print("")
-            elif self.user_input == "A":
+            elif self.user_input == "2":
                 if len(self.owned) == 0:
                     print("You do not have any properties that is available to mortgage.")
                 else:
                     print("Currently available to mortgage:", end=" ")
-                    for i in self.owned:
-                        print(f"{i.name}[{i.loc}]", end=", ")
+                    for i in board:
+                        if i in self.owned:
+                            print(f"{i.name}[{i.loc}]", end=", ")
                     print("")
-            elif self.user_input == "M":
+            elif self.user_input == "3":
                 print("Enter the location of the property you want to mortgage")
                 try:
                     self.temp_input = int(input())
@@ -138,10 +147,10 @@ class Player():
                     if board[self.temp_input] in self.owned:
                         board[self.temp_input].mortgage()
                     elif isinstance(board[self.temp_input], Property):
-                        print("This property is not available for you to mortgage.")
+                        print("This property is not owned by you.")
                     else:
                         print("This location is not a property.")
-            elif self.user_input == "P":
+            elif self.user_input == "4":
                 print("Enter the location of the property you want to pay back the mortgage.")
                 try:
                     self.temp_input = int(input())
@@ -157,49 +166,56 @@ class Player():
 
     def user_building(self):
         while True:
-            self.user_input = input("\n[L]: to check your properties buildings. \n[A]: to check properties available to build buildings \n[B]: to build buildings on properties \n[S]: to sell buildings on properties \n[R]: to return \n").upper()
-            if self.user_input == "R":
+            self.user_input = input("\n[1]: to check your properties buildings. \n[2]: to check properties available to build buildings \n[3]: to build buildings on properties \n[4]: to sell buildings on properties \n[0]: to return \n").upper()
+            if self.user_input == "0":
                 break
-            elif self.user_input == "L":
-                for i in self.owned:
-                    if i.building <= 4:
-                        print(f"{i.name}[{i.loc}]: {i.building} houses", end= ",  ")
-                    else:
-                        print(f"{i.name}[{i.loc}]: 1 hotel", end=",  ")
+            elif self.user_input == "1":
+                for i in board:
+                    if i in self.owned:
+                        if i.building <= 4:
+                            print(f"{i.name}[{i.loc}]: {i.building} houses", end= ",  ")
+                        else:
+                            print(f"{i.name}[{i.loc}]: 1 hotel", end=",  ")
                 print("")
-            elif self.user_input == "A":
+            elif self.user_input == "2":
                 self.full_set_count = 0
-                for i in self.owned:
-                    if type(i) == Property:
-                        if i.full_set == True and i in self.owned:
-                            print(f"{i.name}[{i.loc}] set:({i.set})", end=",  ")
-                            self.full_set_count += 1
+                for i in board:
+                    if i in self.owned:
+                        if type(i) == Property:
+                            if i.full_set == True and i in self.owned:
+                                print(f"{i.name}[{i.loc}] set:({i.set})", end=",  ")
+                                self.full_set_count += 1
                 if self.full_set_count == 0:
                     print("There is no properties available to build buildings", end="")
                 print("")
-            elif self.user_input == "B":
-                print("Enter the location of the property you want to build buildings")
+            elif self.user_input == "3":
+                try:
+                    self.temp_input = int(input("Enter the location of the property you want to build buildings"))
+                except ValueError:
+                    print("Invalid input, please enter the location of the property on the board (0-39).")
+                else:
+                    if type(board[self.temp_input]) == Property:
+                        board[self.temp_input].buy_building()
+                    elif not isinstance(board[self.temp_input], Property):
+                        print("This location is not a property")
+            elif self.user_input == "4":
+                print("Enter the location of the property you want to sell buildings")
                 try:
                     self.temp_input = int(input())
                 except ValueError:
                     print("Invalid input, please enter the location of the property on the board (0-39).")
                 else:
-                    board[self.temp_input].buy_building()
-            elif self.user_input == "S":
-                print("Enter the location of the property you want to build buildings")
-                try:
-                    self.temp_input = int(input())
-                except ValueError:
-                    print("Invalid input, please enter the location of the property on the board (0-39).")
-                else:
-                    board[self.temp_input].sell_building()
+                    if type(board[self.temp_input]) == Property:
+                        board[self.temp_input].sell_building()
+                    elif not isinstance(board[self.temp_input], Property):
+                        print("This location is not a property")
 
     def check_status(self):
         while True:
-            self.temp_input = input("\n[P]: to check player status \n[B]: to check property and board status \n[R]: to return \n").upper()
-            if self.temp_input == "R":
+            self.temp_input = input("\n[1]: to check player status \n[2]: to check property and board status \n[0]: to return \n").upper()
+            if self.temp_input == "0":
                 break
-            elif self.temp_input == "P":
+            elif self.temp_input == "1":
                 try:
                     self.temp_input = int(input("Enter player number: "))
                 except ValueError:
@@ -207,16 +223,17 @@ class Player():
                 else:
                     for i in players:
                         if i.name == self.temp_input:
-                            print(f"\nPlayer{i.name} \nCash: {i.cash} \nProperty owned: ")
-                            for j in i.owned:
-                                if type(j) == Property:
+                            print(f"\nPlayer{i.name} \nCash: ${i.cash} \nProperty owned: ")
+                            for j in board:
+                                if type(j) == Property and j in i.owned:
                                     print(f"{j.name}[{j.loc}]-rent:{j.rent[j.building]}", end="  ")
-                                elif type(j) == Train:
+                                elif type(j) == Train and j in i.owned:
                                     print(f"{j.name}[{j.loc}]-rent:{j.rent*j.owner.train}", end="  ")
-                                elif type(j) == Utility:
+                                elif type(j) == Utility and j in i.owned:
                                     print(f"{j.name}[{j.loc}]", end="  ")
-                            print("")
-            elif self.temp_input == "B":
+                                elif j in i.mortgaged:
+                                    print(f"{j.name}[{j.loc}](Mortgaged)", end="  ")
+            elif self.temp_input == "2":
                 try:
                     self.temp_input = int(input("Enter the location of the property: "))
                 except ValueError:
@@ -232,6 +249,152 @@ class Player():
                         print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought} \nOwner = {board[self.temp_input].owner.name}")
                     else:
                         print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought}")
+
+    def trade(self):
+        self.trade_offer = [0, []]
+        self.trade_request = [0, []]
+        try:
+            self.trade_player = int(input("Enter player # you want to trade with."))
+        except ValueError:
+            print("Please enter a valid player #.")
+        else:
+            if self.trade_player != self.name:
+                for i in players:
+                    if i.name == self.trade_player:
+                        while True:
+                            self.temp_input = input("\n[1]: to add cash or property to the trade deal \n[2]: to remove property from the deal \n[3]: to check current deal \n[4]: to send the trade deal \n[5]: to check player stats \n[0]: to return \n").upper()
+                            if self.temp_input == "0":
+                                break
+                            elif self.temp_input == "1":
+                                self.add_trade(i)
+                            elif self.temp_input == "2":
+                                self.remove_trade()
+                            elif self.temp_input == "3":
+                                self.check_trade()
+                            elif self.temp_input == "4":
+                                self.check_trade()
+                                if input(f"\nPlayer{self.trade_player} enter 'YES' if you accept the trade: ").upper() == "YES":
+                                    self.cash += self.trade_request[0] - self.trade_offer[0]
+                                    i.cash += self.trade_offer[0] - self.trade_request[0]
+                                    for j in self.trade_offer[1]:
+                                        j.owner = i
+                                        if j.mortgaged:
+                                            i.mortgaged.append(j)
+                                            self.mortgaged.remove(j)
+                                        else:
+                                            i.owned.append(j)
+                                            self.owned.remove(j)
+                                    for j in self.trade_request[1]:
+                                        j.owner = self
+                                        if j.mortgaged:
+                                            self.mortgaged.append(j)
+                                            i.mortgaged.remove(j)
+                                        else:
+                                            self.owned.append(j)
+                                            i.owned.remove(j)
+                                    print(f"You traded \n${self.trade_offer[0]}", end=", ")
+                                    for j in self.trade_offer[1]:
+                                        print(f"{j.name}[{j.loc}]", end=" ")
+                                    print(f"\nFor \n${self.trade_request[0]}", end=", ")
+                                    for j in self.trade_request[1]:
+                                        print(f"{j.name}[{j.loc}]", end=" ")
+                                    print()
+                                    break
+                            elif self.temp_input == "5":
+                                self.check_status()
+            else:
+                print("You cannot trade with yourself")
+
+    def add_trade(self, player):
+        while True:
+            self.temp_input = input("\n[1]: to add or change cash in your offers \n[2]: to add property to your offers \n[3]: to add or change cash in your request \n[4]: to add property to your request \n[0]: to return \n")
+            if self.temp_input == "0":
+                break
+            elif self.temp_input == "1":
+                try:
+                    self.trade_input = int(input("Enter cash amount: "))
+                except ValueError:
+                    print("Invalid input, please enter number.")
+                else:
+                    if self.trade_input <= self.cash:
+                        self.trade_offer[0] = (self.trade_input)
+                        print(f"Added {self.trade_input} to offers.")
+                    else:
+                        print(f"You dont have enough cash to add ${self.trade_input}")
+            elif self.temp_input == "2":
+                try:
+                    self.trade_input = int(input("Enter the location of the property you want to add to offers."))
+                except ValueError:
+                    print("Invalid input, please enter the location of the property on the board (0-39).")
+                else:
+                    if board[self.trade_input] in self.owned or board[self.trade_input] in self.mortgaged and board[self.trade_input].building == 0:
+                        self.trade_offer[1].append(board[self.trade_input])
+                        print(f"Added {board[self.trade_input].name} to offers.")
+                    elif isinstance(board[self.trade_input], Property) and board[self.trade_input].building != 0:
+                        print("Please sell your buildings before trading it.")
+                    else:
+                        print("You cannot add this to offers.")
+            elif self.temp_input == "3":
+                try:
+                    self.trade_input = int(input("Enter cash amount: "))
+                except ValueError:
+                    print("Invalid input, please enter number.")
+                else:
+                    if self.trade_input <= player.cash:
+                        self.trade_request[0] = (self.trade_input)
+                        print(f"Added {self.trade_input} to requests.")
+                    else:
+                        print(f"They dont have enough cash to add ${self.trade_input}")
+            elif self.temp_input == "4":
+                try:
+                    self.trade_input = int(input("Enter the location of the property you want to add to requests."))
+                except ValueError:
+                    print("Invalid input, please enter the location of the property on the board (0-39).")
+                else:
+                    if board[self.trade_input] in player.owned or board[self.trade_input] in player.mortgaged and board[self.trade_input].building == 0:
+                        self.trade_request[1].append(board[self.trade_input])
+                        print(f"Added {board[self.trade_input].name} to request.")
+                    elif isinstance(board[self.trade_input], Property) and board[self.trade_input].building != 0:
+                        print("You cannot ask for property with buildings.")
+                    else:
+                        print("You cannot add this to requests.")
+
+    def remove_trade(self):
+        while True:
+            self.temp_input = input("\n[1]: to remove property from your offers \n[2]: to remove property from your requests \n[0]: to return \n")
+            if self.temp_input == "0":
+                break
+            elif self.temp_input == "1":
+                try:
+                    self.trade_input = int(input("Enter the location of the property you remove from offers."))
+                except ValueError:
+                    print("Invalid input, please enter the location of the property on the board (0-39).")
+                else:
+                    if board[self.trade_input] in self.trade_offer[1]:
+                        self.trade_offer[1].remove(board[self.trade_input])
+                        print(f"Removed {board[self.trade_input].name} from offers.")
+                    elif isinstance(board[self.trade_input], Property):
+                        print(f"{board[self.trade_input].name} not found in your current offers")
+            elif self.temp_input == "2":
+                try:
+                    self.trade_input = int(input("Enter the location of the property you want to remove requests."))
+                except ValueError:
+                    print("Invalid input, please enter the location of the property on the board (0-39).")
+                else:
+                    if board[self.trade_input] in self.trade_request[1]:
+                        self.trade_request[1].remove(board[self.trade_input])
+                        print(f"Remove {board[self.trade_input].name} from request.")
+                    elif isinstance(board[self.trade_input], Property):
+                        print(f"{board[self.trade_input].name} not found in your current request")
+
+    def check_trade(self):
+        print(f"\nCurrent Trade Offer: \nCash: ${self.trade_offer[0]} \nProperty:")
+        for j in self.trade_offer[1]:
+            print(f"{j.name}[{j.loc}]", end="  ")
+        print(f"\nCurrent Trade Request: \nCash: ${self.trade_offer[0]} \nProperty:")
+        for j in self.trade_request[1]:
+            print(f"{j.name}[{j.loc}]", end="  ")
+        print()
 
     def process_event(self):
         while not self.end_turn:
@@ -420,4 +583,3 @@ while not game_over:
             print(f"\n======================\nPlayer{i.name}'s turn")
             i.end_turn = False
             i.process_event()
-
