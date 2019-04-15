@@ -233,22 +233,24 @@ class Player():
                                     print(f"{j.name}[{j.loc}]", end="  ")
                                 elif j in i.mortgaged:
                                     print(f"{j.name}[{j.loc}](Mortgaged)", end="  ")
+                            print()
             elif self.temp_input == "2":
                 try:
-                    self.temp_input = int(input("Enter the location of the property: "))
+                    self.temp_input = int(input("Enter a location on the board (0-39): "))
                 except ValueError:
                     print("Invalid input, please enter the location of the property on the board (0-39).")
                 else:
-                    if not isinstance(board[self.temp_input], Property):
-                        print(f"{board[self.temp_input]}")
-                    elif board[self.temp_input].bought and type(board[self.temp_input]) == Property:
-                        print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought} \nOwner = {board[self.temp_input].owner.name} \nRent = {board[self.temp_input].rent[board[self.temp_input].building]}")
-                    elif board[self.temp_input].bought and type(board[self.temp_input]) == Train:
-                        print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought} \nOwner = {board[self.temp_input].owner.name} \nRent = {board[self.temp_input].rent*board[self.temp_input].owner.train}")
-                    elif board[self.temp_input].bought and type(board[self.temp_input]) == Utility:
-                        print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought} \nOwner = {board[self.temp_input].owner.name}")
-                    else:
-                        print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought}")
+                    if self.temp_input < 40:
+                        if not isinstance(board[self.temp_input], Property):
+                            print(f"{board[self.temp_input]}")
+                        elif board[self.temp_input].bought and type(board[self.temp_input]) == Property:
+                            print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought} \nOwner = {board[self.temp_input].owner.name} \nRent = {board[self.temp_input].rent[board[self.temp_input].building]}")
+                        elif board[self.temp_input].bought and type(board[self.temp_input]) == Train:
+                            print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought} \nOwner = {board[self.temp_input].owner.name} \nRent = {board[self.temp_input].rent*board[self.temp_input].owner.train}")
+                        elif board[self.temp_input].bought and type(board[self.temp_input]) == Utility:
+                            print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought} \nOwner = {board[self.temp_input].owner.name}")
+                        else:
+                            print(f"{board[self.temp_input].name}: \nBought = {board[self.temp_input].bought}")
 
     def trade(self):
         self.trade_offer = [0, []]
@@ -433,7 +435,7 @@ class Property():
 
     def buy(self, player):
         if not self.bought and player.cash >= self.cost:
-            self.temp_input = input(f"You landed on an unbought property - {self.name}. \nEnter 'B' to buy this property.").upper()
+            self.temp_input = input(f"You landed on an unbought property - {self.name}(${self.cost}). \nEnter 'B' to buy this property.").upper()
             if self.temp_input == "B":
                 self.bought = True
                 self.owner = player
@@ -537,8 +539,8 @@ class Train(Property):
 
 class Utility(Property):
     def payment(self, player):
-        player.cash -= (player.roll_1 + player.roll_2)*(6*self.utility-2)
-        self.owner.cash += (player.roll_1 + player.roll_2)*(6*self.utility-2)
+        player.cash -= (player.roll_1 + player.roll_2)*(6*player.utility-2)
+        self.owner.cash += (player.roll_1 + player.roll_2)*(6*player.utility-2)
         print(f"You paid Player{self.owner.name} ${(player.roll_1 + player.roll_2)*(6*player.utility-2)} for the expense of {self.name}, ${player.cash} left.")
 
 
@@ -572,14 +574,19 @@ def set_up():
 
     game_over = False
 
-set_up()
-while not game_over:
-    for i in players:
-        if len(players) == 1:
-            print(f"\nPlayer{i.name} win!")
-            game_over = True
-            break
-        if not i.game_over:
-            print(f"\n======================\nPlayer{i.name}'s turn")
-            i.end_turn = False
-            i.process_event()
+def main():
+    global game_over
+    set_up()
+    while not game_over:
+        for i in players:
+            if len(players) == 1:
+                print(f"\nPlayer{i.name} win!")
+                game_over = True
+                break
+            if not i.game_over:
+                print(f"\n======================\nPlayer{i.name}'s turn")
+                i.end_turn = False
+                i.process_event()
+
+if __name__ == "__main__":
+    main()
