@@ -286,6 +286,12 @@ class Player():
                                         else:
                                             i.owned.append(j)
                                             self.owned.remove(j)
+                                        if type(j) == Train:
+                                            self.train -= 1
+                                            i.train += 1
+                                        elif type(j) == Utility:
+                                            self.utility -= 1
+                                            i.utility += 1
                                     for j in self.trade_request[1]:
                                         j.owner = self
                                         if j.mortgaged:
@@ -294,6 +300,12 @@ class Player():
                                         else:
                                             self.owned.append(j)
                                             i.owned.remove(j)
+                                        if type(j) == Train:
+                                            self.train += 1
+                                            i.train -= 1
+                                        elif type(j) == Utility:
+                                            self.utility += 1
+                                            i.utility -= 1
                                     print(f"You traded \n${self.trade_offer[0]}", end=", ")
                                     for j in self.trade_offer[1]:
                                         print(f"{j.name}[{j.loc}]", end=" ")
@@ -486,10 +498,6 @@ class Property():
             self.mortgaged = True
             self.owner.owned.remove(self)
             self.owner.mortgaged.append(self)
-            if type(self) == Train:
-                self.owner.train -= 1
-            elif type(self) == Utility:
-                self.owner.utility -= 1
             print(f"You mortgaged {self.name} and gained ${self.cost/2}. You have ${self.owner.cash} now.")
         elif self.building > 0:
             print(f"You need to sell the buildings at {self.name} before you can mortgage it.")
@@ -573,6 +581,7 @@ def set_up():
             board[i.loc] = i
 
     game_over = False
+    print("Enter 'I' to open interface.")
 
 def main():
     global game_over
