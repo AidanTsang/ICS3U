@@ -1,4 +1,6 @@
-import random
+import random, pickle
+
+game_over = False
 
 class Player():
     def __init__(self, name):
@@ -36,7 +38,7 @@ class Player():
                 self.process_event()
         self.double_count = 0
         while not self.end_turn:
-            self.user_input = input("\nEnter to end turn.").upper()
+            self.user_input = input("\n[Enter] to end turn.").upper()
             if self.user_input == "":
                 self.end_turn = True
             elif self.user_input == "I":
@@ -70,7 +72,7 @@ class Player():
 
     def exit_jail(self):
         if self.in_jail:
-            if input("Enter 'Y' to pay $50 to exit jail.").upper() == "Y":
+            if input("Enter [Y] to pay $50 to exit jail.").upper() == "Y":
                     self.cash -= 50
                     print("You paid $50 to exit jail.")
                     self.in_jail = False
@@ -412,7 +414,7 @@ class Player():
 
     def process_event(self):
         while not self.end_turn:
-            self.user_input = input("\nEnter: to roll dices")
+            self.user_input = input("\n[Enter] to roll dices")
             if self.user_input == "":
                 self.move()
             elif self.user_input.upper() == "I":
@@ -447,7 +449,7 @@ class Property():
 
     def buy(self, player):
         if not self.bought and player.cash >= self.cost:
-            self.temp_input = input(f"You landed on an unbought property - {self.name}(${self.cost}). \nEnter 'B' to buy this property.").upper()
+            self.temp_input = input(f"You landed on an unbought property - {self.name}(${self.cost}). \nEnter [B] to buy this property.").upper()
             if self.temp_input == "B":
                 self.bought = True
                 self.owner = player
@@ -465,7 +467,7 @@ class Property():
                 self.buy(player)
 
         elif player.cash < self.cost:
-            print(f"You do not have enough money to afford this unbought property - {self.name}(${self.cost}). \nEnter 'I' to open user interface.")
+            print(f"You do not have enough money to afford this unbought property - {self.name}(${self.cost}). \nEnter [I] to open user interface.")
             if input().upper() == "I":
                 player.user_in()
                 self.buy(player)
@@ -552,7 +554,7 @@ class Utility(Property):
         print(f"You paid Player{self.owner.name} ${(player.roll_1 + player.roll_2)*(6*player.utility-2)} for the expense of {self.name}, ${player.cash} left.")
 
 
-def set_up():
+def new_game():
     global board, player_num, players, property_list, game_over
     board = [0 for i in range(40)]
     board[0] = "Go"
@@ -583,9 +585,44 @@ def set_up():
     game_over = False
     print("Enter 'I' to open interface.")
 
+def save():
+    with open("monopolysave1", "wb") as output:
+        pickle.dump(players, output, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(property_list, output, pickle.HIGHEST_PROTOCOL)
+
+def load():
+    global players, property_list, board
+    with open("monopolysave1", "rb") as input:
+        players = pickle.load(input)
+        property_list = pickle.load(input)
+
+    board = [0 for i in range(40)]
+    board[0] = "Go"
+    board[30] = "Jail"
+    board[4] = "Income Tax"
+    board[38] = "Luxury Tax"
+
+    for i in players:
+        i.owned = []
+        i.mortgaged = []
+    for set in property_list:
+        for i in set:
+            board[i.loc] = i
+            if i.bought:
+                for j in players:
+                    if i.owner.name == j.name and not i.mortgaged:
+                        j.owned.append(i)
+                        i.owner = j
+                    elif i.owner.name == j.name:
+                        j.mortgaged.append(i)
+                        i.owner = j
+
 def main():
     global game_over
-    set_up()
+    if input("Do you want to load your last save, [Y] to load").upper() == "Y":
+        load()
+    else:
+        new_game()
     while not game_over:
         for i in players:
             if len(players) == 1:
@@ -596,6 +633,7 @@ def main():
                 print(f"\n======================\nPlayer{i.name}'s turn")
                 i.end_turn = False
                 i.process_event()
+                save()
 
 if __name__ == "__main__":
     main()
