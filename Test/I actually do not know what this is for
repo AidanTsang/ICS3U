@@ -1,6 +1,11 @@
 import random, pickle
 
 game_over = False
+board = [0 for i in range(40)]
+board[0] = "Go"
+board[30] = "Jail"
+board[4] = "Income Tax"
+board[38] = "Luxury Tax"
 
 class Player():
     def __init__(self, name):
@@ -104,7 +109,7 @@ class Player():
 
     def user_in(self):
         while True:
-            self.user_input = input("\n[1]: to manage properties' mortgage \n[2]: to manage properties' buildings \n[3]: to check status ot the board and players \n[4]: to trade \n[0]: to return \n").upper()
+            self.user_input = input("\n[1]: to manage properties' mortgage \n[2]: to manage properties' buildings \n[3]: to check status ot the board and players \n[4]: to trade \n[5]: to save \n[6]: to load \n[0]: to return \n").upper()
             if self.user_input == "0":
                 break
             elif self.user_input == "1":
@@ -115,6 +120,10 @@ class Player():
                 self.check_status()
             elif self.user_input == "4":
                 self.trade()
+            elif self.user_input == "5":
+                save(1)
+            elif self.user_input == "6":
+                load()
 
     def user_mortgage(self):
         while True:
@@ -556,11 +565,6 @@ class Utility(Property):
 
 def new_game():
     global board, player_num, players, property_list, game_over
-    board = [0 for i in range(40)]
-    board[0] = "Go"
-    board[30] = "Jail"
-    board[4] = "Income Tax"
-    board[38] = "Luxury Tax"
 
     player_num = int(input("Enter Player number: "))
     players = []
@@ -585,44 +589,80 @@ def new_game():
     game_over = False
     print("Enter 'I' to open interface.")
 
-def save():
-    with open("monopolysave1", "wb") as output:
-        pickle.dump(players, output, pickle.HIGHEST_PROTOCOL)
-        pickle.dump(property_list, output, pickle.HIGHEST_PROTOCOL)
+def save(x):
+    if x == 0:
+        with open("monopolyautosave", "wb") as output:
+            pickle.dump(players, output, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(property_list, output, pickle.HIGHEST_PROTOCOL)
+    else:
+        try:
+            save_file = input("Enter save slot (1-3): ")
+        except ValueError:
+            print("Unknown save slot")
+        else:
+            if save_file == "1":
+                with open("monopolysave1", "wb") as output:
+                    pickle.dump(players, output, pickle.HIGHEST_PROTOCOL)
+                    pickle.dump(property_list, output, pickle.HIGHEST_PROTOCOL)
+            elif save_file == "2":
+                with open("monopolysave2", "wb") as output:
+                    pickle.dump(players, output, pickle.HIGHEST_PROTOCOL)
+                    pickle.dump(property_list, output, pickle.HIGHEST_PROTOCOL)
+            elif save_file == "3":
+                with open("monopolysave3", "wb") as output:
+                    pickle.dump(players, output, pickle.HIGHEST_PROTOCOL)
+                    pickle.dump(property_list, output, pickle.HIGHEST_PROTOCOL)
 
 def load():
     global players, property_list, board
-    with open("monopolysave1", "rb") as input:
-        players = pickle.load(input)
-        property_list = pickle.load(input)
+    try:
+        load_file = input("Enter load slot (0-3):")
+    except ValueError:
+        print("Unknown load slot")
+    else:
+        if load_file == "0":
+            with open("monopolyautosave", "rb") as input_:
+                players = pickle.load(input_)
+                property_list = pickle.load(input_)
+        elif load_file == "1":
+            with open("monopolysave1", "rb") as input_:
+                players = pickle.load(input_)
+                property_list = pickle.load(input_)
+        elif load_file == "2":
+            with open("monopolysave2", "rb") as input_:
+                players = pickle.load(input_)
+                property_list = pickle.load(input_)
+        elif load_file == "3":
+            with open("monopolysave3", "rb") as input_:
+                players = pickle.load(input_)
+                property_list = pickle.load(input_)
 
-    board = [0 for i in range(40)]
-    board[0] = "Go"
-    board[30] = "Jail"
-    board[4] = "Income Tax"
-    board[38] = "Luxury Tax"
+        for i in players:
+            i.owned = []
+            i.mortgaged = []
+        for set in property_list:
+            for i in set:
+                board[i.loc] = i
+                if i.bought:
+                    for j in players:
+                        if i.owner.name == j.name and not i.mortgaged:
+                            j.owned.append(i)
+                            i.owner = j
+                        elif i.owner.name == j.name:
+                            j.mortgaged.append(i)
+                            i.owner = j
 
-    for i in players:
-        i.owned = []
-        i.mortgaged = []
-    for set in property_list:
-        for i in set:
-            board[i.loc] = i
-            if i.bought:
-                for j in players:
-                    if i.owner.name == j.name and not i.mortgaged:
-                        j.owned.append(i)
-                        i.owner = j
-                    elif i.owner.name == j.name:
-                        j.mortgaged.append(i)
-                        i.owner = j
+def menu():
+    print("======================== \nWelcome to Word Monopoly \n========================")
+    user_input = input("[1]: to start a new game \n[2]: to load a game \n")
+    if user_input == "1":
+        new_game()
+    elif user_input == "2":
+        load()
 
 def main():
     global game_over
-    if input("Do you want to load your last save, [Y] to load").upper() == "Y":
-        load()
-    else:
-        new_game()
+    menu()
     while not game_over:
         for i in players:
             if len(players) == 1:
@@ -630,10 +670,10 @@ def main():
                 game_over = True
                 break
             if not i.game_over:
-                print(f"\n======================\nPlayer{i.name}'s turn")
+                print(f"\n========================\nPlayer{i.name}'s turn")
                 i.end_turn = False
                 i.process_event()
-                save()
+                save(0)
 
 if __name__ == "__main__":
     main()
