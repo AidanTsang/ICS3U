@@ -155,12 +155,13 @@ class Player():
                 except ValueError:
                     print("Invalid input, please enter the location of the property on the board (0-39).")
                 else:
-                    if board[self.temp_input] in self.owned:
-                        board[self.temp_input].mortgage()
-                    elif isinstance(board[self.temp_input], Property):
-                        print("This property is not owned by you.")
-                    else:
-                        print("This location is not a property.")
+                    if self.temp_input <= 39:
+                        if board[self.temp_input] in self.owned:
+                            board[self.temp_input].mortgage()
+                        elif isinstance(board[self.temp_input], Property):
+                            print("This property is not owned by you.")
+                        else:
+                            print("This location is not a property.")
             elif self.user_input == "4":
                 print("Enter the location of the property you want to pay back the mortgage.")
                 try:
@@ -201,7 +202,7 @@ class Player():
                 print("")
             elif self.user_input == "3":
                 try:
-                    self.temp_input = int(input("Enter the location of the property you want to build buildings"))
+                    self.temp_input = int(input("Enter the location of the property you want to build buildings: "))
                 except ValueError:
                     print("Invalid input, please enter the location of the property on the board (0-39).")
                 else:
