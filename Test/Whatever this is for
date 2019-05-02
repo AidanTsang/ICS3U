@@ -6,7 +6,7 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Starting Template"
 new_start_x = SCREEN_WIDTH/2
-ball_speed = 25
+ball_speed = 10
 ball_num = 0
 ball_list = []
 ball_radius = 5
@@ -53,29 +53,25 @@ class Ball:
                 if abs((block.x-block_radius)-self.x) < abs(self.change_x):
                     self.x = block.x-block_radius-ball_radius
                     self.change_x = -self.change_x
-                    print("hit from left")
                 elif abs((block.x+block_radius)-self.x) < abs(self.change_x):
                     self.x = block.x+block_radius+ball_radius
                     self.change_x = -self.change_x
-                    print("hit from right")
                 if abs((block.y-block_radius)-self.y) < abs(self.change_y):
                     self.y = block.y-block_radius-ball_radius
                     self.change_y = -self.change_y
-                    print("hit from bottom")
                 elif abs((block.y+block_radius)-self.y) < abs(self.change_y):
                     self.y = block.y+block_radius+ball_radius
                     self.change_y = -self.change_y
-                    print("hit from top")
                 block.hp -= 1
 
 
 
 class Block:
-    def __init__(self, x ,start_round):
+    def __init__(self, x ,start_round, hp):
         self.x = x
         self.start_round = start_round
         self.y = SCREEN_HEIGHT - 50 - (round - self.start_round) * 54
-        self.hp = start_round
+        self.hp = hp
 
     def draw(self):
         arcade.draw_lrtb_rectangle_outline(self.x-block_radius, self.x+block_radius, self.y+block_radius, self.y-block_radius, arcade.color.YELLOW)
@@ -98,13 +94,16 @@ def new_round():
 
 
 def draw_board():
-    arcade.draw_text(f"Round:{round} \nBall:{ball_num} \nLaunch:{ball_launched} \nScreen:{len(ball_list)}", 20, SCREEN_HEIGHT-40, arcade.color.WHITE, 20)
+    arcade.draw_text(f"Round:{round} \nBall:{ball_num} \nLaunch:{ball_launched} \nScreen:{len(ball_list)} \n{timer}", 20, SCREEN_HEIGHT-40, arcade.color.WHITE, 20)
 
 def block_list_update():
     global block_list
     for i in range(7):
-        if random.randrange(2) == 0:
-            block_list.append(Block(54*i + 236, round))
+        rand = random.randrange(10)
+        if rand >= 6:
+            block_list.append(Block(54*i + 236, round, round))
+        elif rand == 5:
+            block_list.append(Block(54 * i + 236, round, round*2))
     for item in block_list:
         item.y = SCREEN_HEIGHT - 50 - (round - item.start_round) * 54
 
@@ -150,6 +149,8 @@ class MyGame(arcade.Window):
             arcade.draw_circle_filled(ball_start_x, ball_radius, ball_radius, arcade.color.WHITE)
         elif not first_land:
             arcade.draw_circle_filled(new_start_x, ball_radius, ball_radius, arcade.color.WHITE)
+        if not round_start:
+            arcade.draw_line(ball_start_x, ball_radius, ball_start_x+change_x/ball_speed*50, ball_radius+change_y/ball_speed*50, arcade.color.WHITE)
         # Call draw() on all your sprite lists below
 
     def update(self, delta_time):
@@ -204,7 +205,10 @@ class MyGame(arcade.Window):
             ang_x = (x - ball_start_x)
             ang_y = y
             ang = math.atan(ang_x/ang_y)
-            print(ang)
+            if ang >= 1.39626:
+                ang = 1.39626
+            elif ang <= -1.39626:
+                ang = -1.39626
             change_x = math.sin(ang)*ball_speed
             change_y = math.cos(ang)*ball_speed
             loc_got = True
