@@ -7,17 +7,21 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Starting Template"
 new_start_x = SCREEN_WIDTH/2
-ball_speed = 5
-ball_num = 0
+ball_speed = 10
+ball_num = 1
 ball_list = []
 ball_radius = 5
-block_radius = 24
 block_list = []
+block_radius = 24
+powerup_list = []
+powerup_radius = 8
 round = 0
 timer = 0
 fps = 0
 old_time = time.time()
 fps_count = 0
+change_x = 0
+change_y = 0
 gameover = False
 
 
@@ -33,48 +37,60 @@ class Ball:
         arcade.draw_circle_filled(self.x, self.y, ball_radius, arcade.color.WHITE)
 
     def update(self):
-        global first_land, new_start_x
         self.x += self.change_x
         self.y += self.change_y
-        if self.x < 200+ball_radius:
-            self.y = self.y+((200+ball_radius)-self.x)/self.change_x*self.change_y
+        self.land()
+        self.collide_wall()
+        self.collide_block()
+        self.collide_powerup()
+
+    def collide_wall(self):
+        if self.x-ball_radius < 200:
+            self.y = self.y-(200-(self.x-ball_radius))/self.change_x*self.change_y
             self.x = 200+ball_radius
             self.change_x = -self.change_x
-        elif self.x > 600-ball_radius:
-            self.y = self.y+(self.x-(600-ball_radius))/self.change_x*self.change_y
+        elif self.x+ball_radius > 600:
+            self.y = self.y-((self.x+ball_radius)-600)/self.change_x*self.change_y
             self.x = 600-ball_radius
             self.change_x = -self.change_x
         if self.y > 600-ball_radius:
-            self.x = self.x+(self.y-(600-ball_radius))/self.change_y*self.change_x
+            self.x = self.x-((self.y+ball_radius)-600)/self.change_y*self.change_x
             self.y = 600-ball_radius
             self.change_y = -self.change_y
-        elif self.y < ball_radius:
+
+    def land(self):
+        global first_land, new_start_x
+        if self.y < ball_radius:
             if first_land:
                 new_start_x = self.x
                 first_land = False
             ball_list.remove(self)
-        self.collide()
 
-    def collide(self):
+    def collide_block(self):
         for block in block_list:
             if self.x+ball_radius > block.x-block_radius and self.x-ball_radius < block.x+block_radius and self.y-ball_radius < block.y+block_radius and self.y+ball_radius > block.y-block_radius:
-                if abs((block.x-block_radius)-self.x) < abs(self.change_x) and self.change_x > 0:
-                    self.y = self.y - abs(block.x - block_radius - self.x) / self.change_x * self.change_y
+                if (self.x+ball_radius)-(block.x-block_radius) < abs(self.change_x) and self.change_x > 0:
+                    self.y = self.y - ((self.x+ball_radius)-(block.x-block_radius)) / self.change_x * self.change_y
                     self.x = block.x-block_radius-ball_radius
                     self.change_x = -self.change_x
-                elif abs((block.x+block_radius)-self.x) < abs(self.change_x) and self.change_x < 0:
-                    self.y = self.y - abs(block.x + block_radius - self.x) / self.change_x * self.change_y
+                elif (block.x+block_radius)-(self.x-ball_radius) < abs(self.change_x) and self.change_x < 0:
+                    self.y = self.y - ((block.x+block_radius)-(self.x-ball_radius)) / self.change_x * self.change_y
                     self.x = block.x+block_radius+ball_radius
                     self.change_x = -self.change_x
-                if abs((block.y-block_radius)-self.y) < abs(self.change_y) and self.change_y > 0:
-                    self.x = self.x - abs(block.y - block_radius - self.y) / self.change_y * self.change_x
+                if (self.y+ball_radius)-(block.y-block_radius) < abs(self.change_y) and self.change_y > 0:
+                    self.x = self.x - ((self.y+ball_radius)-(block.y-block_radius)) / self.change_y * self.change_x
                     self.y = block.y-block_radius-ball_radius
                     self.change_y = -self.change_y
-                elif abs((block.y+block_radius)-self.y) < abs(self.change_y) and self.change_y < 0:
-                    self.x = self.x - abs(block.y + block_radius - self.y) / self.change_y * self.change_x
+                elif (block.y+block_radius)-(self.y-ball_radius) < abs(self.change_y) and self.change_y < 0:
+                    self.x = self.x - ((block.y+block_radius)-(self.y-ball_radius)) / self.change_y * self.change_x
                     self.y = block.y+block_radius+ball_radius
                     self.change_y = -self.change_y
-                block.hp -= 1
+                block.update()
+
+    def collide_powerup(self):
+        for item in powerup_list:
+            if math.sqrt((self.x-item.x)**2+(self.y-item.y)**2) <= powerup_radius+ball_radius:
+                item.update()
 
 
 
@@ -82,7 +98,6 @@ class Block:
     def __init__(self, x ,start_round, hp):
         self.x = x
         self.start_round = start_round
-        self.y = SCREEN_HEIGHT - 50 - (round - self.start_round) * 54
         self.hp = hp
 
     def draw(self):
@@ -90,37 +105,66 @@ class Block:
         arcade.draw_text(f"{self.hp}", self.x-len(str(self.hp))*5, self.y-5, arcade.color.YELLOW)
 
     def update(self):
+        self.hp -= 1
         if self.hp <= 0:
             block_list.remove(self)
 
+    def new_round(self):
+        self.y = SCREEN_HEIGHT - 50 - (round - self.start_round) * 54
+
+class PowerUp:
+    def __init__(self, x, start_round, type):
+        self.x = x
+        self.start_round = start_round
+
+    def draw(self):
+        arcade.draw_circle_outline(self.x, self.y, powerup_radius, arcade.color.ORANGE, 2)
+
+    def update(self):
+        global ball_num
+        ball_num += 1
+        powerup_list.remove(self)
+
+    def new_round(self):
+        self.y = SCREEN_HEIGHT - 50 - (round - self.start_round) * 54
+
 def new_round():
-    global round, first_land, ball_num, ball_launched, ball_start_x, new_start_x, round_start, change_x, change_y
-    change_x, change_y = 0, 0
+    global round, first_land, ball_launched, ball_start_x, round_start, all_launched
     ball_launched = 0
     ball_start_x = new_start_x
     round += 1
-    ball_num += 1
     first_land = True
     round_start = False
-    block_list_update()
+    all_launched = False
+    get_new_roll()
+    roll_new_round()
 
 
 def draw_board():
     arcade.draw_text(f"Round:{round} \nBall:{ball_num} \nLaunch:{ball_launched} \nScreen:{len(ball_list)}", 20, SCREEN_HEIGHT-40, arcade.color.WHITE, 20)
     arcade.draw_text(f"{fps}", SCREEN_WIDTH-50, SCREEN_HEIGHT-40, arcade.color.WHITE, 20)
 
-def block_list_update():
-    global block_list, gameover
-    for i in range(7):
-        rand = random.randrange(10)
-        if rand >= 6:
-            block_list.append(Block(54*i + 236, round, round))
-        elif rand == 5:
-            block_list.append(Block(54 * i + 236, round, round*2))
+def roll_new_round():
+    global gameover
     for item in block_list:
         if round - item.start_round >= 9:
             gameover = True
-        item.y = SCREEN_HEIGHT - 50 - (round - item.start_round) * 54
+        item.new_round()
+    for item in powerup_list:
+        item.new_round()
+
+def get_new_roll():
+    global block_list
+    exball_loc = random.randrange(7)
+    powerup_list.append(PowerUp(54*exball_loc+236, round, None))
+    for i in range(7):
+        if i != exball_loc:
+            rand = random.randrange(10)
+            if rand >= 6:
+                block_list.append(Block(54*i + 236, round, round))
+            elif rand == 5:
+                block_list.append(Block(54 * i + 236, round, round*2))
+
 
 def check_sec():
     global fps_count, old_time, fps
@@ -165,6 +209,8 @@ class MyGame(arcade.Window):
             item.draw()
         for item in block_list:
             item.draw()
+        for item in powerup_list:
+            item.draw()
         draw_board()
         if not round_start:
             arcade.draw_circle_filled(ball_start_x, ball_radius, ball_radius, arcade.color.WHITE)
@@ -173,7 +219,7 @@ class MyGame(arcade.Window):
         if not round_start:
             arcade.draw_line(ball_start_x, ball_radius, ball_start_x+change_x/ball_speed*40, ball_radius+change_y/ball_speed*40, arcade.color.WHITE)
         if gameover:
-            arcade.draw_text("GAMEOVER\nYOU SUCK", 300, 350, arcade.color.WHITE, 50)
+            arcade.draw_text("GAMEOVER", 300, 350, arcade.color.WHITE, 50)
         # Call draw() on all your sprite lists below
 
     def update(self, delta_time):
@@ -182,20 +228,20 @@ class MyGame(arcade.Window):
         Normally, you'll call update() on the sprite lists that
         need it.
         """
-        global timer, ball_launched, fps_count
+        global timer, ball_launched, fps_count, all_launched
         if not gameover:
-            if timer % 5 == 0 and ball_launched < ball_num and round_start:
+            if timer % 5 == 0 and round_start and not all_launched:
                 ball_list.append(Ball(ball_start_x, ball_radius, change_x, change_y))
                 ball_launched += 1
-            if len(ball_list) == 0 and round_start:
-                new_round()
+            if ball_launched == ball_num:
+                all_launched = True
             for item in ball_list:
                 item.update()
-            for item in block_list:
-                item.update()
-            if len(block_list) == 0:
+            if len(ball_list) == 0:
                 for item in ball_list:
                     ball_list.remove(item)
+                if round_start:
+                    new_round()
 
 
             timer += 1
@@ -246,7 +292,7 @@ class MyGame(arcade.Window):
         """
         Called when the user presses a mouse button.
         """
-        global round_start, timer, loc_got
+        global round_start, timer, loc_got, all_lannched
         if not round_start and loc_got:
             round_start = True
             loc_got = False
