@@ -116,9 +116,12 @@ class PowerUp:
     def __init__(self, x, start_round, type):
         self.x = x
         self.start_round = start_round
+        self.type = type
 
     def draw(self):
         arcade.draw_circle_outline(self.x, self.y, powerup_radius, arcade.color.ORANGE, 2)
+        arcade.draw_line(self.x, self.y+4, self.x, self.y-4, arcade.color.ORANGE, 2)
+        arcade.draw_line(self.x+4, self.y, self.x-4, self.y, arcade.color.ORANGE, 2)
 
     def update(self):
         global ball_num
@@ -137,14 +140,14 @@ def new_round():
     round_start = False
     all_launched = False
     get_new_roll()
-    roll_new_round()
+    roll_fall()
 
 
 def draw_board():
-    arcade.draw_text(f"Round:{round} \nBall:{ball_num} \nLaunch:{ball_launched} \nScreen:{len(ball_list)}", 20, SCREEN_HEIGHT-40, arcade.color.WHITE, 20)
+    arcade.draw_text(f"Round:{round} \nBall:{ball_num} \nLaunch:{ball_launched} \nScreen:{len(ball_list)}", 20, SCREEN_HEIGHT-80, arcade.color.WHITE, 20)
     arcade.draw_text(f"{fps}", SCREEN_WIDTH-50, SCREEN_HEIGHT-40, arcade.color.WHITE, 20)
 
-def roll_new_round():
+def roll_fall():
     global gameover
     for item in block_list:
         if round - item.start_round >= 9:
@@ -159,10 +162,10 @@ def get_new_roll():
     powerup_list.append(PowerUp(54*exball_loc+236, round, None))
     for i in range(7):
         if i != exball_loc:
-            rand = random.randrange(10)
-            if rand >= 6:
+            rand = random.randrange(20)
+            if rand >= 11:
                 block_list.append(Block(54*i + 236, round, round))
-            elif rand == 5:
+            elif rand == 10:
                 block_list.append(Block(54 * i + 236, round, round*2))
 
 
