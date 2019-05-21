@@ -116,12 +116,9 @@ class PowerUp:
     def __init__(self, x, start_round, type):
         self.x = x
         self.start_round = start_round
-        self.type = type
 
     def draw(self):
         arcade.draw_circle_outline(self.x, self.y, powerup_radius, arcade.color.ORANGE, 2)
-        arcade.draw_line(self.x, self.y+4, self.x, self.y-4, arcade.color.ORANGE, 2)
-        arcade.draw_line(self.x+4, self.y, self.x-4, self.y, arcade.color.ORANGE, 2)
 
     def update(self):
         global ball_num
@@ -140,14 +137,14 @@ def new_round():
     round_start = False
     all_launched = False
     get_new_roll()
-    roll_fall()
+    roll_new_round()
 
 
-def draw_board():
-    arcade.draw_text(f"Round:{round} \nBall:{ball_num} \nLaunch:{ball_launched} \nScreen:{len(ball_list)}", 20, SCREEN_HEIGHT-80, arcade.color.WHITE, 20)
+def draw_stats():
+    arcade.draw_text(f"Round:{round} \nBall:{ball_num} \nLaunch:{ball_launched} \nScreen:{len(ball_list)}", 20, SCREEN_HEIGHT-40, arcade.color.WHITE, 20)
     arcade.draw_text(f"{fps}", SCREEN_WIDTH-50, SCREEN_HEIGHT-40, arcade.color.WHITE, 20)
 
-def roll_fall():
+def roll_new_round():
     global gameover
     for item in block_list:
         if round - item.start_round >= 9:
@@ -162,10 +159,10 @@ def get_new_roll():
     powerup_list.append(PowerUp(54*exball_loc+236, round, None))
     for i in range(7):
         if i != exball_loc:
-            rand = random.randrange(20)
-            if rand >= 11:
+            rand = random.randrange(10)
+            if rand >= 6:
                 block_list.append(Block(54*i + 236, round, round))
-            elif rand == 10:
+            elif rand == 5:
                 block_list.append(Block(54 * i + 236, round, round*2))
 
 
@@ -176,6 +173,13 @@ def check_sec():
         fps = fps_count
         fps_count = 0
         old_time = new_time
+
+def menu():
+    pass
+
+def draw_menu():
+    arcade.draw_text("Press [Enter] to start", 220, 300, arcade.color.WHITE, 25)
+
 
 class MyGame(arcade.Window):
     """
@@ -196,8 +200,9 @@ class MyGame(arcade.Window):
 
     def setup(self):
         # Create your sprites and sprite lists here
-        if True:
-            new_round()
+        global game_start
+        game_start = False
+        menu()
 
     def on_draw(self):
         """
@@ -208,21 +213,24 @@ class MyGame(arcade.Window):
         # the screen to the background color, and erase what we drew last frame.
         arcade.start_render()
         arcade.draw_xywh_rectangle_filled(200, 0, 400, SCREEN_HEIGHT, arcade.color.BLACK)
-        for item in ball_list:
-            item.draw()
-        for item in block_list:
-            item.draw()
-        for item in powerup_list:
-            item.draw()
-        draw_board()
-        if not round_start:
-            arcade.draw_circle_filled(ball_start_x, ball_radius, ball_radius, arcade.color.WHITE)
-        elif not first_land:
-            arcade.draw_circle_filled(new_start_x, ball_radius, ball_radius, arcade.color.WHITE)
-        if not round_start:
-            arcade.draw_line(ball_start_x, ball_radius, ball_start_x+change_x/ball_speed*40, ball_radius+change_y/ball_speed*40, arcade.color.WHITE)
-        if gameover:
-            arcade.draw_text("GAMEOVER", 300, 350, arcade.color.WHITE, 50)
+        if game_start:
+            for item in ball_list:
+                item.draw()
+            for item in block_list:
+                item.draw()
+            for item in powerup_list:
+                item.draw()
+            draw_stats()
+            if not round_start:
+                arcade.draw_circle_filled(ball_start_x, ball_radius, ball_radius, arcade.color.WHITE)
+            elif not first_land:
+                arcade.draw_circle_filled(new_start_x, ball_radius, ball_radius, arcade.color.WHITE)
+            if not round_start:
+                arcade.draw_line(ball_start_x, ball_radius, ball_start_x+change_x/ball_speed*40, ball_radius+change_y/ball_speed*40, arcade.color.WHITE)
+            if gameover:
+                arcade.draw_text("GAMEOVER", 300, 350, arcade.color.WHITE, 50)
+        else:
+            draw_menu()
         # Call draw() on all your sprite lists below
 
     def update(self, delta_time):
@@ -232,7 +240,7 @@ class MyGame(arcade.Window):
         need it.
         """
         global timer, ball_launched, fps_count, all_launched
-        if not gameover:
+        if not gameover and game_start:
             if timer % 5 == 0 and round_start and not all_launched:
                 ball_list.append(Ball(ball_start_x, ball_radius, change_x, change_y))
                 ball_launched += 1
@@ -260,6 +268,11 @@ class MyGame(arcade.Window):
         For a full list of keys, see:
         http://arcade.academy/arcade.key.html
         """
+        global game_start
+        if not game_start:
+            if key == arcade.key.ENTER:
+                game_start = True
+                new_round()
         if key == arcade.key.UP:
             for item in ball_list:
                 item.x += 10
@@ -277,17 +290,18 @@ class MyGame(arcade.Window):
         Called whenever the mouse moves.
         """
         global change_x, change_y, loc_got
-        if not round_start:
-            ang_x = (x - ball_start_x)
-            ang_y = y
-            ang = math.atan(ang_x/ang_y)
-            if ang >= 1.39626:
-                ang = 1.39626
-            elif ang <= -1.39626:
-                ang = -1.39626
-            change_x = math.sin(ang)*ball_speed
-            change_y = math.cos(ang)*ball_speed
-            loc_got = True
+        if game_start:
+            if not round_start:
+                ang_x = (x - ball_start_x)
+                ang_y = y
+                ang = math.atan(ang_x/ang_y)
+                if ang >= 1.39626:
+                    ang = 1.39626
+                elif ang <= -1.39626:
+                    ang = -1.39626
+                change_x = math.sin(ang)*ball_speed
+                change_y = math.cos(ang)*ball_speed
+                loc_got = True
 
 
 
@@ -296,10 +310,11 @@ class MyGame(arcade.Window):
         Called when the user presses a mouse button.
         """
         global round_start, timer, loc_got, all_lannched
-        if not round_start and loc_got:
-            round_start = True
-            loc_got = False
-            timer = 0
+        if game_start:
+            if not round_start and loc_got:
+                round_start = True
+                loc_got = False
+                timer = 0
 
     def on_mouse_release(self, x, y, button, key_modifiers):
         """
