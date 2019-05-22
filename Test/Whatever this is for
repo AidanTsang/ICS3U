@@ -8,21 +8,13 @@ SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Starting Template"
 new_start_x = SCREEN_WIDTH/2
 ball_speed = 10
-ball_num = 1
-ball_list = []
 ball_radius = 5
-block_list = []
 block_radius = 24
-powerup_list = []
 powerup_radius = 8
-round = 0
 timer = 0
 fps = 0
 old_time = time.time()
 fps_count = 0
-change_x = 0
-change_y = 0
-gameover = False
 
 
 
@@ -128,6 +120,18 @@ class PowerUp:
     def new_round(self):
         self.y = SCREEN_HEIGHT - 50 - (round - self.start_round) * 54
 
+def new_game():
+    global ball_num, ball_list, block_list, powerup_list, round, gameover, change_x, change_y
+    ball_num = 1
+    ball_list = []
+    block_list = []
+    powerup_list = []
+    round = 0
+    gameover = False
+    change_x = 0
+    change_y = 0
+    new_round()
+
 def new_round():
     global round, first_land, ball_launched, ball_start_x, round_start, all_launched
     ball_launched = 0
@@ -180,6 +184,9 @@ def menu():
 def draw_menu():
     arcade.draw_text("Press [Enter] to start", 220, 300, arcade.color.WHITE, 25)
 
+def draw_pause():
+    arcade.draw_text("Paused", 350, 300, arcade.color.WHITE, 25)
+
 
 class MyGame(arcade.Window):
     """
@@ -200,8 +207,9 @@ class MyGame(arcade.Window):
 
     def setup(self):
         # Create your sprites and sprite lists here
-        global game_start
+        global game_start, paused
         game_start = False
+        paused = False
         menu()
 
     def on_draw(self):
@@ -214,21 +222,30 @@ class MyGame(arcade.Window):
         arcade.start_render()
         arcade.draw_xywh_rectangle_filled(200, 0, 400, SCREEN_HEIGHT, arcade.color.BLACK)
         if game_start:
-            for item in ball_list:
-                item.draw()
-            for item in block_list:
-                item.draw()
-            for item in powerup_list:
-                item.draw()
-            draw_stats()
-            if not round_start:
-                arcade.draw_circle_filled(ball_start_x, ball_radius, ball_radius, arcade.color.WHITE)
-            elif not first_land:
-                arcade.draw_circle_filled(new_start_x, ball_radius, ball_radius, arcade.color.WHITE)
-            if not round_start:
-                arcade.draw_line(ball_start_x, ball_radius, ball_start_x+change_x/ball_speed*40, ball_radius+change_y/ball_speed*40, arcade.color.WHITE)
-            if gameover:
-                arcade.draw_text("GAMEOVER", 300, 350, arcade.color.WHITE, 50)
+            if not paused:
+                for item in ball_list:
+                    item.draw()
+                for item in block_list:
+                    item.draw()
+                for item in powerup_list:
+                    item.draw()
+                draw_stats()
+                if not round_start:
+                    arcade.draw_circle_filled(ball_start_x, ball_radius, ball_radius, arcade.color.WHITE)
+                    ang = math.atan((self.x - ball_start_x)/(self.y - ball_radius))
+                    if ang >= 1.39626:
+                        ang = 1.39626
+                    elif ang <= -1.39626:
+                        ang = -1.39626
+                    x_dis = math.sin(ang) * 50
+                    y_dis = math.cos(ang) * 50
+                    arcade.draw_line(ball_start_x, ball_radius, ball_start_x + x_dis, ball_radius + y_dis, arcade.color.WHITE)
+                elif not first_land:
+                    arcade.draw_circle_filled(new_start_x, ball_radius, ball_radius, arcade.color.WHITE)
+                if gameover:
+                    arcade.draw_text("GAMEOVER", 300, 350, arcade.color.WHITE, 50)
+            else:
+                draw_pause()
         else:
             draw_menu()
         # Call draw() on all your sprite lists below
@@ -240,24 +257,26 @@ class MyGame(arcade.Window):
         need it.
         """
         global timer, ball_launched, fps_count, all_launched
-        if not gameover and game_start:
-            if timer % 5 == 0 and round_start and not all_launched:
-                ball_list.append(Ball(ball_start_x, ball_radius, change_x, change_y))
-                ball_launched += 1
-            if ball_launched == ball_num:
-                all_launched = True
-            for item in ball_list:
-                item.update()
-            if len(ball_list) == 0:
+        if game_start:
+            if not gameover and not paused:
+                if timer % 5 == 0 and round_start and not all_launched:
+                    ball_list.append(Ball(ball_start_x, ball_radius, change_x, change_y))
+                    ball_launched += 1
+                if ball_launched == ball_num:
+                    all_launched = True
                 for item in ball_list:
-                    ball_list.remove(item)
-                if round_start:
-                    new_round()
+                    item.update()
+                if len(block_list) + len(powerup_list) == 0:
+                    for item in ball_list:
+                        ball_list.remove(item)
+                if len(ball_list) == 0:
+                    if round_start:
+                        new_round()
 
 
-            timer += 1
-            fps_count += 1
-            check_sec()
+                timer += 1
+                fps_count += 1
+                check_sec()
 
 
 
@@ -268,14 +287,17 @@ class MyGame(arcade.Window):
         For a full list of keys, see:
         http://arcade.academy/arcade.key.html
         """
-        global game_start
+        global game_start, paused
         if not game_start:
             if key == arcade.key.ENTER:
                 game_start = True
-                new_round()
-        if key == arcade.key.UP:
-            for item in ball_list:
-                item.x += 10
+                new_game()
+        else:
+            if key == arcade.key.ESCAPE:
+                if paused:
+                    paused = False
+                else:
+                    paused = True
 
 
 
@@ -289,19 +311,8 @@ class MyGame(arcade.Window):
         """
         Called whenever the mouse moves.
         """
-        global change_x, change_y, loc_got
-        if game_start:
-            if not round_start:
-                ang_x = (x - ball_start_x)
-                ang_y = y
-                ang = math.atan(ang_x/ang_y)
-                if ang >= 1.39626:
-                    ang = 1.39626
-                elif ang <= -1.39626:
-                    ang = -1.39626
-                change_x = math.sin(ang)*ball_speed
-                change_y = math.cos(ang)*ball_speed
-                loc_got = True
+        self.x = x
+        self.y = y
 
 
 
@@ -309,9 +320,18 @@ class MyGame(arcade.Window):
         """
         Called when the user presses a mouse button.
         """
-        global round_start, timer, loc_got, all_lannched
+        global round_start, timer, loc_got, all_lannched, change_x, change_y
         if game_start:
-            if not round_start and loc_got:
+            if not round_start and not paused:
+                ang_x = (x - ball_start_x)
+                ang_y = y
+                ang = math.atan((x-ball_start_x) / y)
+                if ang >= 1.39626:
+                    ang = 1.39626
+                elif ang <= -1.39626:
+                    ang = -1.39626
+                change_x = math.sin(ang) * ball_speed
+                change_y = math.cos(ang) * ball_speed
                 round_start = True
                 loc_got = False
                 timer = 0
