@@ -62,19 +62,15 @@ class Ball:
         for block in block_list:
             if self.x+ball_radius > block.x-block_radius and self.x-ball_radius < block.x+block_radius and self.y-ball_radius < block.y+block_radius and self.y+ball_radius > block.y-block_radius:
                 if (self.x+ball_radius)-(block.x-block_radius) < abs(self.change_x) and self.change_x > 0:
-                    self.y = self.y - ((self.x+ball_radius)-(block.x-block_radius)) / self.change_x * self.change_y
                     self.x = block.x-block_radius-ball_radius
                     self.change_x = -self.change_x
                 elif (block.x+block_radius)-(self.x-ball_radius) < abs(self.change_x) and self.change_x < 0:
-                    self.y = self.y - ((block.x+block_radius)-(self.x-ball_radius)) / self.change_x * self.change_y
                     self.x = block.x+block_radius+ball_radius
                     self.change_x = -self.change_x
                 if (self.y+ball_radius)-(block.y-block_radius) < abs(self.change_y) and self.change_y > 0:
-                    self.x = self.x - ((self.y+ball_radius)-(block.y-block_radius)) / self.change_y * self.change_x
                     self.y = block.y-block_radius-ball_radius
                     self.change_y = -self.change_y
                 elif (block.y+block_radius)-(self.y-ball_radius) < abs(self.change_y) and self.change_y < 0:
-                    self.x = self.x - ((block.y+block_radius)-(self.y-ball_radius)) / self.change_y * self.change_x
                     self.y = block.y+block_radius+ball_radius
                     self.change_y = -self.change_y
                 block.update()
@@ -178,15 +174,28 @@ def check_sec():
         fps_count = 0
         old_time = new_time
 
-def menu():
-    pass
+def draw_menu(page):
+    if page == 0:
+        arcade.draw_text("Balls", 320, 400, arcade.color.WHITE, 50)
+        arcade.draw_xywh_rectangle_outline(320, 285, 160, 50, arcade.color.YELLOW, 2)
+        arcade.draw_text("Play", 370, 300, arcade.color.YELLOW, 20)
+        arcade.draw_xywh_rectangle_outline(320, 210, 160, 50, arcade.color.ORANGE, 2)
+        arcade.draw_text("How To Play", 325, 225, arcade.color.ORANGE, 18)
+    elif page == 1:
+        draw_help()
+    elif page == 2:
+        draw_highscore()
 
-def draw_menu():
-    arcade.draw_text("Press [Enter] to start", 220, 300, arcade.color.WHITE, 25)
+def draw_help():
+    arcade.draw_xywh_rectangle_outline(220, 20, 50, 50, arcade.color.WHITE, 2)
+    arcade.draw_xywh_rectangle_filled(240, 40, 25, 10, arcade.color.WHITE)
+    arcade.draw_triangle_filled(240, 30, 240, 60, 225, 45, arcade.color.WHITE)
 
 def draw_pause():
     arcade.draw_text("Paused", 350, 300, arcade.color.WHITE, 25)
 
+def draw_highscore():
+    pass
 
 class MyGame(arcade.Window):
     """
@@ -207,10 +216,10 @@ class MyGame(arcade.Window):
 
     def setup(self):
         # Create your sprites and sprite lists here
-        global game_start, paused
+        global game_start, paused, menu_page
         game_start = False
         paused = False
-        menu()
+        menu_page = 0
 
     def on_draw(self):
         """
@@ -232,14 +241,7 @@ class MyGame(arcade.Window):
                 draw_stats()
                 if not round_start:
                     arcade.draw_circle_filled(ball_start_x, ball_radius, ball_radius, arcade.color.WHITE)
-                    ang = math.atan((self.x - ball_start_x)/(self.y - ball_radius))
-                    if ang >= 1.39626:
-                        ang = 1.39626
-                    elif ang <= -1.39626:
-                        ang = -1.39626
-                    x_dis = math.sin(ang) * 50
-                    y_dis = math.cos(ang) * 50
-                    arcade.draw_line(ball_start_x, ball_radius, ball_start_x + x_dis, ball_radius + y_dis, arcade.color.WHITE)
+                    arcade.draw_line(ball_start_x, ball_radius, ball_start_x + change_x*5, ball_radius + change_y*5, arcade.color.WHITE)
                 elif not first_land:
                     arcade.draw_circle_filled(new_start_x, ball_radius, ball_radius, arcade.color.WHITE)
                 if gameover:
@@ -247,7 +249,7 @@ class MyGame(arcade.Window):
             else:
                 draw_pause()
         else:
-            draw_menu()
+            draw_menu(menu_page)
         # Call draw() on all your sprite lists below
 
     def update(self, delta_time):
@@ -288,11 +290,7 @@ class MyGame(arcade.Window):
         http://arcade.academy/arcade.key.html
         """
         global game_start, paused
-        if not game_start:
-            if key == arcade.key.ENTER:
-                game_start = True
-                new_game()
-        else:
+        if game_start:
             if key == arcade.key.ESCAPE:
                 if paused:
                     paused = False
@@ -311,20 +309,9 @@ class MyGame(arcade.Window):
         """
         Called whenever the mouse moves.
         """
-        self.x = x
-        self.y = y
-
-
-
-    def on_mouse_press(self, x, y, button, key_modifiers):
-        """
-        Called when the user presses a mouse button.
-        """
-        global round_start, timer, loc_got, all_lannched, change_x, change_y
+        global loc_got, change_x, change_y
         if game_start:
             if not round_start and not paused:
-                ang_x = (x - ball_start_x)
-                ang_y = y
                 ang = math.atan((x-ball_start_x) / y)
                 if ang >= 1.39626:
                     ang = 1.39626
@@ -332,9 +319,32 @@ class MyGame(arcade.Window):
                     ang = -1.39626
                 change_x = math.sin(ang) * ball_speed
                 change_y = math.cos(ang) * ball_speed
+                loc_got = True
+
+
+
+
+    def on_mouse_press(self, x, y, button, key_modifiers):
+        """
+        Called when the user presses a mouse button.
+        """
+        global round_start, timer, loc_got, all_lannched, change_x, change_y, game_start, menu_page
+        if game_start:
+            if not round_start and not paused and loc_got:
                 round_start = True
                 loc_got = False
                 timer = 0
+        elif menu_page == 0:
+            if x >= 320 and x <= 480 and y >= 285 and y <= 335:
+                game_start = True
+                new_game()
+            elif x >= 320 and x <= 480 and y >= 210 and y <= 260:
+                menu_page = 1
+        elif menu_page == 1:
+            if x >= 220 and x <= 270 and y >= 20 and y <= 70:
+                menu_page = 0
+
+
 
     def on_mouse_release(self, x, y, button, key_modifiers):
         """
